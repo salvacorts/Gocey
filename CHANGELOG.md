@@ -10,7 +10,9 @@ Old Issue  | New Issue
 [#2](https://github.com/salvacorts/TFG-Parasitic-Metaheuristics/issues/2)  | [#7](https://github.com/salvacorts/TFG-Parasitic-Metaheuristics/issues/7)
 [#1](https://github.com/salvacorts/TFG-Parasitic-Metaheuristics/issues/1)  | [#8](https://github.com/salvacorts/TFG-Parasitic-Metaheuristics/issues/8)
 
-## 14th - 18th May 2019
+An informal overview of the motivation and objectives or the project have been written in [#11](https://github.com/salvacorts/TFG-Parasitic-Metaheuristics/issues/11). Next step would be to formalize it in the documentation.
+
+### 14th - 18th May 2019
 - Exploring WebAssembly and its limitations developing few prototypes. Found out thatneither UDP nor GRPC are fully supported in WebAssembly. HTTP seems to be a good approach.
 - Explore load-balancers. [Nginx](http://nginx.org/) seems to be the best approach since it is easy to configure and let us add new servers to the load balancers with an restful API.
 

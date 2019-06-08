@@ -1,7 +1,7 @@
 package gomlp
 
 import (
-	"math"
+	"fmt"
 
 	transf "github.com/salvacorts/TFG-Parasitic-Metaheuristics/gomlp/transferfunctions"
 )
@@ -32,8 +32,20 @@ func MakeMLP(layers []int, learningRate float64, transfterFunction transf.Transf
 	return mlp
 }
 
+// Train the model with a set of examples
+func (mlp MLP) Train(input [][]float64, output [][]float64) {
+	if (len(input) < 1 && len(output) < 1) || len(input[0]) < 1 {
+		fmt.Printf("[!] Malformed training data")
+		return
+	}
+
+	for i := 0; i < len(input); i++ {
+		mlp.backPropagation(input[i], output[i])
+	}
+}
+
 // Train trains the mlp with backpropagation (Singlethread)
-func (mlp MLP) Train(input []float64, output []float64) float64 {
+func (mlp MLP) backPropagation(input []float64, output []float64) {
 	newOutput := mlp.Predict(input)
 
 	// Calculate output deltas with output error
@@ -69,17 +81,6 @@ func (mlp MLP) Train(input []float64, output []float64) float64 {
 		}
 
 	}
-
-	// Calculate accuracy
-	// TODO: I think I should predict the ourputs again (?)
-	accuracy := 0.0
-
-	for i := 0; i < len(output); i++ {
-		accuracy += math.Abs(newOutput[i] - output[i])
-	}
-
-	return accuracy / float64(len(output))
-
 }
 
 // Predict takes an input of features and predict an output
@@ -111,4 +112,15 @@ func (mlp MLP) Predict(input []float64) []float64 {
 	}
 
 	return output
+}
+
+// PredictN predicts various instances
+func (mlp MLP) PredictN(inputs [][]float64) [][]float64 {
+	predictions := make([][]float64, len(inputs))
+
+	for i, x := range inputs {
+		predictions[i] = mlp.Predict(x)
+	}
+
+	return predictions
 }

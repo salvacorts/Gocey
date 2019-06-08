@@ -2,48 +2,72 @@ package gomlp_test
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 
 	gomlp "github.com/salvacorts/TFG-Parasitic-Metaheuristics/gomlp"
 	transf "github.com/salvacorts/TFG-Parasitic-Metaheuristics/gomlp/transferfunctions"
+	utils "github.com/salvacorts/TFG-Parasitic-Metaheuristics/gomlp/utils"
 )
 
-func TestBasicMLP(t *testing.T) {
-	layers := []int{4, 5, 2}
+func TestGlass(t *testing.T) {
+	layers := []int{10, 5, 4, 7}
 	sigm := transf.MakeSigmoidalTransferFunc()
 
 	mlp := gomlp.MakeMLP(layers, 0.6, sigm)
 
-	// Crate testing data
-	inputs := make([]float64, 4)
-	outputs := make([]float64, 2)
+	// Read data and shuffle it
+	data := utils.LoadCSV("datasets/glass.data")
+	rand.Shuffle(len(data), func(i, j int) {
+		data[i], data[j] = data[j], data[i]
+	})
+
+	X := make([][]float64, len(data))
+	y := make([]float64, len(data))
+
+	for i := 0; i < len(data); i++ {
+		X[i] = make([]float64, len(data[i])-1)
+		X[i] = data[i][:len(data[i])-1]
+
+		y[i] = data[i][len(data[i])-1]
+	}
+
+	y_onehot := utils.OneHotEncode(y, 7)
+
+	// Divide train and test
+	n_train := int(float64(len(X)) * 0.8)
+	X_train := X[0:n_train]
+	y_train := y_onehot[0:n_train]
+	X_test := X[n_train:]
+	y_test := y_onehot[n_train:]
 
 	// Train
-	accuracy := mlp.Train(inputs, outputs)
-	t.Logf("Error: %f", accuracy)
+	mlp.Train(X_train, y_train)
 
 	// Predict
-	inputs = make([]float64, 4)
-	outputs = mlp.Predict(inputs)
-	t.Logf("Outputs: %v", outputs)
-}
+	predictions := mlp.PredictN(X_test)
 
-func main() {
-	layers := []int{4, 5, 2}
-	sigm := transf.MakeSigmoidalTransferFunc()
+	// Get the one with maximum
+	for i := 0; i < len(predictions); i++ {
+		max_idx := 0
+		max := 0.0
 
-	mlp := gomlp.MakeMLP(layers, 0.6, sigm)
+		for j := 0; j < len(predictions[i]); j++ {
+			if predictions[i][j] > max {
+				max = predictions[i][j]
+				max_idx = j
+			}
+		}
 
-	// Crate testing data
-	inputs := make([]float64, 4)
-	outputs := make([]float64, 2)
+		for j := 0; j < len(predictions[i]); j++ {
+			if j != max_idx {
+				predictions[i][j] = 0
+			} else {
+				predictions[i][j] = 1
+			}
+		}
+	}
 
-	// Train
-	accuracy := mlp.Train(inputs, outputs)
-	fmt.Printf("Error: %f", accuracy)
-
-	// Predict
-	inputs = make([]float64, 4)
-	outputs = mlp.Predict(inputs)
-	fmt.Printf("Outputs: %v", outputs)
+	accuracy := utils.GetAccuracy(predictions, y_test)
+	fmt.Printf("Accuracy: %f", accuracy)
 }

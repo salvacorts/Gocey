@@ -1,1 +1,0 @@
-# Multi-Layer Perceptron in Go

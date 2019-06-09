@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -9,5 +10,12 @@ import (
 
 func main() {
 	log.SetOutput(os.Stdout)
-	common.TrainMLP("../../datasets/glass.csv")
+
+	filename := "../../datasets/glass.csv"
+	fileContent, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Fatalf("Cannot open %s. Error: %s", filename, err.Error())
+	}
+
+	common.TrainMLP(string(fileContent))
 }

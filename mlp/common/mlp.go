@@ -10,8 +10,8 @@ import (
 )
 
 // TrainMLP trains a Multi Layer Perceptron
-func TrainMLP(filename string) {
-	mlpLogger.SetLevel(mlpLogger.ErrorLevel)
+func TrainMLP(csvdata string) {
+	mlpLogger.SetLevel(mlpLogger.InfoLevel)
 	var start = time.Now()
 
 	// single layer neuron parameters
@@ -19,11 +19,11 @@ func TrainMLP(filename string) {
 	var shuffle = 1
 
 	// training parameters
-	var epochs = 100
-	var folds = 3
+	var epochs = 1
+	var folds = 2
 
 	// Patterns initialization
-	var patterns, _, mapped = mn.LoadPatternsFromCSVFile(filename)
+	var patterns, _, mapped = LoadPatternsFromCSVFile(csvdata)
 
 	//input  layer : 4 neuron, represents the feature of Iris, more in general dimensions of pattern
 	//hidden layer : 3 neuron, activation using sigmoid, number of neuron in hidden level

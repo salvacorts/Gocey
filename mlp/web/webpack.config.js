@@ -1,6 +1,5 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const AddAssetHtmlPlugin = require('add-asset-html-webpack-plugin');
-const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   resolve: {
@@ -48,9 +47,6 @@ module.exports = {
         removeRedundantAttributes: true
       }
     },
-    new CopyPlugin([
-      { from: './src/go/main.wasp', to: 'wasp' },
-    ]),
 ),
     // Make sure to add these in this order, so the wasm_exec.js gets injected first
     // yes, it's backwards, I know :/

@@ -1,7 +1,7 @@
 package common
 
 import (
-	"fmt"
+	"log"
 	"time"
 
 	mn "github.com/made2591/go-perceptron-go/model/neural"
@@ -37,6 +37,6 @@ func TrainMLP(csvdata string) {
 	// compute scores for each folds execution
 	var scores = v.MLPKFoldValidation(&mlp, patterns, epochs, folds, shuffle, mapped)
 
-	fmt.Printf("Scores: %v\n", scores)
-	fmt.Printf("Execution time: %s\n", time.Since(start))
+	log.Printf("Scores: %v\n", scores)
+	log.Printf("Execution time: %s\n", time.Since(start))
 }

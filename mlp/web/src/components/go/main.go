@@ -30,7 +30,8 @@ func trainMLPWrapper(this js.Value, args []js.Value) interface{} {
 }
 
 func main() {
-	// TODO: Make logs go to website
+	log.SetOutput(makeWebLogger())
+
 	trainMLPcb := js.FuncOf(trainMLPWrapper)
 	js.Global().Set("trainMLP", trainMLPcb)
 

@@ -20,6 +20,6 @@ export default class App extends React.Component {
   render() {
     return this.state.isLoading 
             ? <div>Loading</div> 
-            :  <div>Loaded</div>
+            :  <div id="logs"></div>
   }
 }

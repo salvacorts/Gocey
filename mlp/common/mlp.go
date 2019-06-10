@@ -6,12 +6,10 @@ import (
 
 	mn "github.com/made2591/go-perceptron-go/model/neural"
 	v "github.com/made2591/go-perceptron-go/validation"
-	mlpLogger "github.com/sirupsen/logrus"
 )
 
 // TrainMLP trains a Multi Layer Perceptron
-func TrainMLP(csvdata string) {
-	mlpLogger.SetLevel(mlpLogger.InfoLevel)
+func TrainMLP(csvdata string) (mn.MultiLayerNetwork, []float64) {
 	var start = time.Now()
 
 	// single layer neuron parameters
@@ -23,7 +21,7 @@ func TrainMLP(csvdata string) {
 	var folds = 2
 
 	// Patterns initialization
-	var patterns, _, mapped = LoadPatternsFromCSVFile(csvdata)
+	var patterns, _, mapped = LoadPatternsFromCSV(csvdata)
 
 	//input  layer : 4 neuron, represents the feature of Iris, more in general dimensions of pattern
 	//hidden layer : 3 neuron, activation using sigmoid, number of neuron in hidden level
@@ -37,6 +35,7 @@ func TrainMLP(csvdata string) {
 	// compute scores for each folds execution
 	var scores = v.MLPKFoldValidation(&mlp, patterns, epochs, folds, shuffle, mapped)
 
-	log.Printf("Scores: %v\n", scores)
 	log.Printf("Execution time: %s\n", time.Since(start))
+
+	return mlp, scores
 }

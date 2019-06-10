@@ -12,7 +12,7 @@ import (
 	mu "github.com/made2591/go-perceptron-go/util"
 )
 
-func LoadPatternsFromCSVFile(content string) ([]Pattern, error, []string) {
+func LoadPatternsFromCSV(content string) ([]Pattern, error, []string) {
 
 	// init patterns
 	var patterns []Pattern

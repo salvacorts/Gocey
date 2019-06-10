@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/dennwc/dom"
-	common "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common"
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common"
 )
 
 func main() {
@@ -24,7 +24,9 @@ func main() {
 		log.Fatalf("Cannot read dataset body. Error: %s", err.Error())
 	}
 
-	common.TrainMLP((string(body)))
+	_, scores := common.TrainMLP(string(body))
+
+	log.Printf("Scores: %v\n", scores)
 
 	dom.Loop()
 }

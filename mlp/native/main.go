@@ -5,17 +5,19 @@ import (
 	"log"
 	"os"
 
-	common "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common"
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common"
 )
 
 func main() {
 	log.SetOutput(os.Stdout)
 
-	filename := "../../datasets/glass.csv"
+	filename := "../../datasets/iris.csv"
 	fileContent, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("Cannot open %s. Error: %s", filename, err.Error())
 	}
 
-	common.TrainMLP(string(fileContent))
+	_, scores := common.TrainMLP(string(fileContent))
+
+	log.Printf("Scores: %v\n", scores)
 }

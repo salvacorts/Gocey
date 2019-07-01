@@ -43,3 +43,51 @@ Otra cuestión a resolver es como compartir soluciones encontradas entre los nod
 - [A modern, event-based architecture for distributed evolutionary algorithms](https://dl.acm.org/citation.cfm?id=3205719)
 - [Cloudy distributed evolutionary computation](https://dl.acm.org/citation.cfm?id=3207858)
 - [Mapping evolutionary algorithms to a reactive, stateless architecture: using a modern concurrent language](https://dl.acm.org/citation.cfm?id=3208317)
+
+----------
+
+# Setup
+
+## Common dependencies
+
+- Golang >= 1.11
+- Fabric >= 2
+- NPM
+
+#### Optional
+- goexec: `go get github.com/shurcooL/goexec`
+
+## Native
+### Dependencies
+```bash
+go get ./...
+```
+
+# Run
+```bash
+cd mlp/native
+go run main.go
+```
+
+
+## Web
+### Dependencies
+```bash
+cd mlp/web
+npm install 
+npm run build
+```
+
+# Run
+```bash
+cd dist
+goexec 'http.ListenAndServe(":8080", http.FileServer(http.Dir(".")))'
+```
+
+Or with a Fabric:
+```bash
+fab build-web-mlp
+fab run-server-web-mlp
+```
+
+In both cases open a browser and go to [127.0.0.1:8080](http://127.0.0.1:8080)

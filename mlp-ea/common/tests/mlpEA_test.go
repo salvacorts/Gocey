@@ -16,14 +16,16 @@ func TestTrainMLP(t *testing.T) {
 	}
 
 	mlpLogger.SetLevel(mlpLogger.ErrorLevel)
-	mlp, score, error := common.TrainMLP(string(fileContent))
+	_, score, err := common.TrainMLP(string(fileContent))
 	if err != nil {
 		t.Errorf("Error Training MLP: %s", err.Error())
 	}
 
-	expectedScore := 28.0
+	expectedScore := 10.0
 
 	if score < expectedScore {
-		t.Errorf("Got training score (%f) under threshold (%f)", s, expectedScore)
+		t.Errorf("Got training score (%f) under threshold (%f)", score, expectedScore)
+	} else {
+		t.Logf("Got accuracy: %f\n", score)
 	}
 }

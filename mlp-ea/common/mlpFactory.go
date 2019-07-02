@@ -15,6 +15,7 @@ type MLPFactory struct {
 	// Network topology
 	InputLayers     int
 	OutputLayers    int
+	MinHiddenLayers int
 	MaxHiddenLayers int
 	Tfunc           TransferFunction
 	TfuncDeriv      TransferFunction
@@ -29,7 +30,7 @@ type MLPFactory struct {
 func (f MLPFactory) NewRandMLP(rng *rand.Rand) eaopt.Genome {
 	layers := []int{
 		f.InputLayers,
-		rng.Int() % f.MaxHiddenLayers,
+		f.MinHiddenLayers + rng.Int()%f.MaxHiddenLayers,
 		f.OutputLayers}
 
 	learningRate := f.MaxLR + rng.Float64()*(f.MaxLR-f.MinLR)

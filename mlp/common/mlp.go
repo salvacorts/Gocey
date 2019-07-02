@@ -6,6 +6,7 @@ import (
 
 	mn "github.com/made2591/go-perceptron-go/model/neural"
 	v "github.com/made2591/go-perceptron-go/validation"
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 )
 
 // TrainMLP trains a Multi Layer Perceptron
@@ -21,7 +22,7 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, []float64) {
 	var folds = 2
 
 	// Patterns initialization
-	var patterns, _, mapped = LoadPatternsFromCSV(csvdata)
+	var patterns, _, mapped = utils.LoadPatternsFromCSV(csvdata)
 
 	//input  layer : 4 neuron, represents the feature of Iris, more in general dimensions of pattern
 	//hidden layer : 3 neuron, activation using sigmoid, number of neuron in hidden level

@@ -6,7 +6,8 @@ import (
 
 	eaopt "github.com/MaxHalford/eaopt"
 	mn "github.com/made2591/go-perceptron-go/model/neural"
-	utils "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common"
+	v "github.com/made2591/go-perceptron-go/validation"
+	utils "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 )
 
 // TrainMLP trains a Multi Layer Perceptron
@@ -15,6 +16,7 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 
 	// Patterns initialization
 	var patterns, _, mapped = utils.LoadPatternsFromCSV(csvdata)
+	train, validation := v.TrainTestPatternSplit(patterns, 0.8, 1)
 
 	ga, err := eaopt.NewDefaultGAConfig().NewGA()
 	if err != nil {
@@ -22,28 +24,35 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 	}
 
 	// Configure ga
-	ga.NGenerations = 10
+	ga.NGenerations = 20
 	ga.NPops = 1
-	ga.PopSize = 50
+	ga.PopSize = 20
+	ga.Model = eaopt.ModSteadyState{
+		Selector:  eaopt.SelElitism{},
+		KeepBest:  true,
+		MutRate:   0.4,
+		CrossRate: 0.5, // TODO: Ask JJ
+	}
 	ga.Callback = func(ga *eaopt.GA) {
 		log.Printf("Best fitness at generation %d: %f\n", ga.Generations, ga.HallOfFame[0].Fitness)
 	}
 
-	// Congigure MLP Factory
+	// Configure MLP Factory
 	mlpFactory := MLPFactory{
 		InputLayers:     len(patterns[0].Features),
 		OutputLayers:    len(mapped),
-		MaxHiddenLayers: 30,
+		MinHiddenLayers: 2,
+		MaxHiddenLayers: 20,
 		Tfunc:           mn.SigmoidalTransfer,
 		TfuncDeriv:      mn.SigmoidalTransferDerivate,
 		MaxLR:           0.3,
-		MinLR:           0.1,
+		MinLR:           0.01,
 
 		Config: MLPConfig{
-			Epochs:    1,
-			Classes:   &mapped,
-			TrainData: &patterns,
-			TestData:  &patterns, // TODO: Split data pattern
+			Epochs:        1,
+			Classes:       &mapped,
+			TrainingSet:   &train,
+			ValidationSet: &validation,
 		},
 	}
 

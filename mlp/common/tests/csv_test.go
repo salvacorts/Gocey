@@ -4,59 +4,9 @@ import (
 	"testing"
 
 	"github.com/made2591/go-perceptron-go/model/neural"
-	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common"
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 	mlpLogger "github.com/sirupsen/logrus"
 )
-
-func equalString(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
-func equalFloat64(a, b []float64) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
-func equalPattern(a, b []neural.Pattern) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	for i := 0; i < len(a); i++ {
-		if a[i].SingleExpectation != b[i].SingleExpectation {
-			return false
-		}
-
-		if a[i].SingleRawExpectation != b[i].SingleRawExpectation {
-			return false
-		}
-
-		if !equalFloat64(a[i].MultipleExpectation, b[i].MultipleExpectation) {
-			return false
-		}
-
-		if !equalFloat64(a[i].Features, b[i].Features) {
-			return false
-		}
-	}
-
-	return true
-}
 
 func TestLoadPatternsFromCSVFile(t *testing.T) {
 	csv :=
@@ -66,7 +16,7 @@ func TestLoadPatternsFromCSVFile(t *testing.T) {
 5.9,3,4.2,1.5,Iris-versicolor`
 
 	mlpLogger.SetLevel(mlpLogger.ErrorLevel)
-	pattern, err, mapped := common.LoadPatternsFromCSV(csv)
+	pattern, err, mapped := utils.LoadPatternsFromCSV(csv)
 	if err != nil {
 		t.Errorf("Error loading CSV. Error: %s", err.Error())
 	}

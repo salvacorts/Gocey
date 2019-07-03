@@ -39,7 +39,7 @@ func (mlp MLP) Evaluate() (float64, error) {
 
 	accuracy, _ := mu.MaxInSlice(scores)
 
-	return accuracy, nil
+	return 100 - accuracy, nil
 }
 
 // Mutate modifies the weights of certain neurons, at random, depending on the application rate.
@@ -65,14 +65,14 @@ func (mlp MLP) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 // and increments it, if neccesary, by adding new hidden units
 func AddLayer(in eaopt.Genome, rng *rand.Rand) (out eaopt.Genome) {
 	// TODO: AddLayer
-
+	out = in
 	return out
 }
 
 // RemoveLayer eliminates one hidden neuron at random
 func RemoveLayer(in eaopt.Genome, rng *rand.Rand) (out eaopt.Genome) {
 	// TODO: RemoveLayer
-
+	out = in
 	return out
 }
 
@@ -80,14 +80,14 @@ func RemoveLayer(in eaopt.Genome, rng *rand.Rand) (out eaopt.Genome) {
 // initialized with random weights
 func SubstituteNeuron(in eaopt.Genome, rng *rand.Rand) (out eaopt.Genome) {
 	// TODO: SubstituteNeuron
-
+	out = in
 	return out
 }
 
 // Train is used to train the individual-net for acertain number of generations, using the QP algorithm.
 func Train(in eaopt.Genome, rng *rand.Rand) (out eaopt.Genome) {
 	// TODO: Train
-
+	out = in
 	return out
 }
 

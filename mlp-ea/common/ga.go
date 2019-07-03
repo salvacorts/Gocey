@@ -4,10 +4,10 @@ import (
 	"log"
 	"time"
 
-	eaopt "github.com/MaxHalford/eaopt"
 	mn "github.com/made2591/go-perceptron-go/model/neural"
-	v "github.com/made2591/go-perceptron-go/validation"
+	mv "github.com/made2591/go-perceptron-go/validation"
 	utils "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
+	"github.com/salvacorts/eaopt"
 )
 
 // TrainMLP trains a Multi Layer Perceptron
@@ -16,7 +16,7 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 
 	// Patterns initialization
 	var patterns, _, mapped = utils.LoadPatternsFromCSV(csvdata)
-	train, validation := v.TrainTestPatternSplit(patterns, 0.8, 1)
+	train, validation := mv.TrainTestPatternSplit(patterns, 0.8, 1)
 
 	ga, err := eaopt.NewDefaultGAConfig().NewGA()
 	if err != nil {
@@ -32,6 +32,13 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 		KeepBest:  true,
 		MutRate:   0.4,
 		CrossRate: 0.5, // TODO: Ask JJ
+
+		ExtraOperators: []eaopt.ExtraOperator{
+			eaopt.ExtraOperator{Operator: AddLayer, Probability: 0.1},
+			eaopt.ExtraOperator{Operator: RemoveLayer, Probability: 0.1},
+			eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: 0.1},
+			eaopt.ExtraOperator{Operator: Train, Probability: 0.1},
+		},
 	}
 	ga.Callback = func(ga *eaopt.GA) {
 		log.Printf("Best fitness at generation %d: %f\n", ga.Generations, ga.HallOfFame[0].Fitness)
@@ -49,7 +56,8 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 		MinLR:           0.01,
 
 		Config: MLPConfig{
-			Epochs:        1,
+			Epochs:        10,
+			Folds:         1,
 			Classes:       &mapped,
 			TrainingSet:   &train,
 			ValidationSet: &validation,

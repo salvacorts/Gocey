@@ -3,8 +3,8 @@ package common
 import (
 	"math/rand"
 
-	"github.com/MaxHalford/eaopt"
 	mn "github.com/made2591/go-perceptron-go/model/neural"
+	"github.com/salvacorts/eaopt"
 )
 
 // TransferFunction stands for a transfer function

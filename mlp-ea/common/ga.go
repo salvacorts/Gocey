@@ -34,8 +34,8 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 		CrossRate: 0.5, // TODO: Ask JJ
 
 		ExtraOperators: []eaopt.ExtraOperator{
-			eaopt.ExtraOperator{Operator: AddLayer, Probability: 0.1},
-			eaopt.ExtraOperator{Operator: RemoveLayer, Probability: 0.1},
+			eaopt.ExtraOperator{Operator: AddNeuron, Probability: 0.1},
+			eaopt.ExtraOperator{Operator: RemoveNeuron, Probability: 0.1},
 			eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: 0.1},
 			eaopt.ExtraOperator{Operator: Train, Probability: 0.1},
 		},
@@ -75,5 +75,5 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 	best := ga.HallOfFame[0].Genome.(MLP)
 	bestScore := ga.HallOfFame[0].Fitness
 
-	return best.nn, bestScore, nil
+	return best.NeuralNet, bestScore, nil
 }

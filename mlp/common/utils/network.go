@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"math/rand"
+
 	mn "github.com/made2591/go-perceptron-go/model/neural"
 	mu "github.com/made2591/go-perceptron-go/util"
 )
@@ -43,4 +45,14 @@ func AccuracyN(roundedPredictions []float64, actual []mn.Pattern) (int, float64)
 	}
 
 	return mn.Accuracy(expected, roundedPredictions)
+}
+
+// RandIntInRange returns a random integer between min and max
+func RandIntInRange(min, max int, rgn *rand.Rand) int {
+	return min + rand.Int()%max
+}
+
+// Remove the given index i from the slice
+func Remove(slice []mn.NeuronUnit, i int) []mn.NeuronUnit {
+	return append(slice[:i], slice[i+1:]...)
 }

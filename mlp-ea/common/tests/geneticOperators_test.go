@@ -55,3 +55,47 @@ func TestEvaluate(t *testing.T) {
 		t.Errorf("Got training score (%f) under threshold (%f)", score, expectedScore)
 	}
 }
+
+func TestAddNeuron(t *testing.T) {
+	mlp := common.MLP{}
+	rgn := rand.New(rand.NewSource(7))
+	size := 5
+
+	mlp.NeuralNet.NeuralLayers = make([]mn.NeuralLayer, 3)
+	mlp.NeuralNet.NeuralLayers[1].Length = size
+	mlp.NeuralNet.NeuralLayers[1].NeuronUnits = make([]mn.NeuronUnit, size)
+
+	common.AddNeuron(mlp, rgn)
+
+	if mlp.NeuralNet.NeuralLayers[1].Length != size+1 {
+		t.Errorf("Length attr does not match to expected. Got (%d), expected (%d)",
+			mlp.NeuralNet.NeuralLayers[1].Length, size+1)
+	}
+
+	if len(mlp.NeuralNet.NeuralLayers[1].NeuronUnits) != size+1 {
+		t.Errorf("Slice length does not match to expected. Got (%d), expected (%d)",
+			len(mlp.NeuralNet.NeuralLayers[1].NeuronUnits), size+1)
+	}
+}
+
+func TestRemoveNeuron(t *testing.T) {
+	mlp := common.MLP{}
+	rgn := rand.New(rand.NewSource(7))
+	size := 5
+
+	mlp.NeuralNet.NeuralLayers = make([]mn.NeuralLayer, 3)
+	mlp.NeuralNet.NeuralLayers[1].Length = size
+	mlp.NeuralNet.NeuralLayers[1].NeuronUnits = make([]mn.NeuronUnit, size)
+
+	common.RemoveNeuron(mlp, rgn)
+
+	if mlp.NeuralNet.NeuralLayers[1].Length != size-1 {
+		t.Errorf("Length attr does not match to expected. Got (%d), expected (%d)",
+			mlp.NeuralNet.NeuralLayers[1].Length, size-1)
+	}
+
+	if len(mlp.NeuralNet.NeuralLayers[1].NeuronUnits) != size-1 {
+		t.Errorf("Slice length does not match to expected. Got (%d), expected (%d)",
+			len(mlp.NeuralNet.NeuralLayers[1].NeuronUnits), size-1)
+	}
+}

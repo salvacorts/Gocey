@@ -2,10 +2,11 @@ package common
 
 import (
 	"io/ioutil"
+	"os"
 	"testing"
 
-	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea/common"
-	mlpLogger "github.com/sirupsen/logrus"
+	ga "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea/common"
+	"github.com/sirupsen/logrus"
 )
 
 func TestTrainMLP(t *testing.T) {
@@ -15,8 +16,11 @@ func TestTrainMLP(t *testing.T) {
 		t.Errorf("Cannot open %s. Error: %s", filename, err.Error())
 	}
 
-	mlpLogger.SetLevel(mlpLogger.ErrorLevel)
-	_, score, err := common.TrainMLP(string(fileContent))
+	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.ErrorLevel)
+	ga.Log.SetOutput(os.Stdout)
+	ga.Log.SetLevel(logrus.DebugLevel)
+	_, score, err := ga.TrainMLP(string(fileContent))
 	if err != nil {
 		t.Errorf("Error Training MLP: %s", err.Error())
 	}

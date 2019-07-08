@@ -1,14 +1,17 @@
 package common
 
 import (
-	"log"
 	"time"
 
 	mn "github.com/made2591/go-perceptron-go/model/neural"
 	mv "github.com/made2591/go-perceptron-go/validation"
 	utils "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 	"github.com/salvacorts/eaopt"
+	"github.com/sirupsen/logrus"
 )
+
+// Log is the logger instance for the GA
+var Log = logrus.New()
 
 // TrainMLP trains a Multi Layer Perceptron
 func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
@@ -31,7 +34,7 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 		Selector:  eaopt.SelElitism{},
 		KeepBest:  true,
 		MutRate:   0.4,
-		CrossRate: 0.5, // TODO: Ask JJ
+		CrossRate: 0.5,
 
 		ExtraOperators: []eaopt.ExtraOperator{
 			eaopt.ExtraOperator{Operator: AddNeuron, Probability: 0.1},
@@ -41,7 +44,11 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 		},
 	}
 	ga.Callback = func(ga *eaopt.GA) {
-		log.Printf("Best fitness at generation %d: %f\n", ga.Generations, ga.HallOfFame[0].Fitness)
+		Log.WithFields(logrus.Fields{
+			"level":      "info",
+			"Generation": ga.Generations,
+			"Fitness":    ga.HallOfFame[0].Fitness,
+		}).Infof("Best fitness at generation %d: %f\n", ga.Generations, ga.HallOfFame[0].Fitness)
 	}
 
 	// Configure MLP Factory
@@ -70,7 +77,10 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 		return mn.MultiLayerNetwork{}, 0, err
 	}
 
-	log.Printf("Execution time: %s\n", time.Since(start))
+	Log.WithFields(logrus.Fields{
+		"level":    "info",
+		"ExecTime": time.Since(start),
+	}).Infof("Execution time: %s\n", time.Since(start))
 
 	best := ga.HallOfFame[0].Genome.(MLP)
 	bestScore := ga.HallOfFame[0].Fitness

@@ -47,12 +47,17 @@ func AccuracyN(roundedPredictions []float64, actual []mn.Pattern) (int, float64)
 	return mn.Accuracy(expected, roundedPredictions)
 }
 
-// RandIntInRange returns a random integer between min and max
+// RandIntInRange returns a random integer in range [min, max)
 func RandIntInRange(min, max int, rgn *rand.Rand) int {
-	return min + rand.Int()%max
+	return rgn.Intn(max-min) + min
 }
 
-// Remove the given index i from the slice
-func Remove(slice []mn.NeuronUnit, i int) []mn.NeuronUnit {
+// RemoveNeuron the given index i from the slice of neurons
+func RemoveNeuron(slice []mn.NeuronUnit, i int) []mn.NeuronUnit {
+	return append(slice[:i], slice[i+1:]...)
+}
+
+// RemoveF64 the given index i from the slice of floats
+func RemoveF64(slice []float64, i int) []float64 {
 	return append(slice[:i], slice[i+1:]...)
 }

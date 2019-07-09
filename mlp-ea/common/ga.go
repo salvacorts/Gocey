@@ -48,7 +48,7 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 			"level":      "info",
 			"Generation": ga.Generations,
 			"Fitness":    ga.HallOfFame[0].Fitness,
-		}).Infof("Best fitness at generation %d: %f\n", ga.Generations, ga.HallOfFame[0].Fitness)
+		}).Infof("Best fitness at generation %d: %f", ga.Generations, ga.HallOfFame[0].Fitness)
 	}
 
 	// Configure MLP Factory

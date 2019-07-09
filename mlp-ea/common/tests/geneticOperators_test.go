@@ -99,6 +99,59 @@ func TestEvaluate(t *testing.T) {
 	}
 }
 
+func TestMutate(t *testing.T) {
+	mlpLogger.SetLevel(mlpLogger.ErrorLevel)
+
+	mlp := common.MLP{}
+	rgn := rand.New(rand.NewSource(7))
+	size := 5
+	nWeights := 3
+
+	mlp.NeuralNet.L_rate = 0.5
+	mlp.NeuralNet.NeuralLayers = make([]mn.NeuralLayer, 3)
+	mlp.NeuralNet.NeuralLayers[1].Length = size
+	mlp.NeuralNet.NeuralLayers[1].NeuronUnits = make([]mn.NeuronUnit, size)
+	mlp.NeuralNet.NeuralLayers[2].Length = 2
+	mlp.NeuralNet.NeuralLayers[2].NeuronUnits = make([]mn.NeuronUnit, 2)
+
+	for i := 0; i < size; i++ {
+		mlp.NeuralNet.NeuralLayers[1].NeuronUnits[i].Weights = make([]float64, nWeights)
+
+		for j := 0; j < nWeights; j++ {
+			mlp.NeuralNet.NeuralLayers[1].NeuronUnits[i].Weights[j] =
+				rgn.NormFloat64() * common.ScalingFactor
+		}
+	}
+
+	original := mlp.Clone().(common.MLP)
+
+	mlp.Mutate(rgn)
+
+	// Check if weights have mutated aout of the range [-0.1, 0.1]
+	for i, layer := range mlp.NeuralNet.NeuralLayers {
+		for j, neuron := range layer.NeuronUnits {
+			for k, weight := range neuron.Weights {
+
+				if weight > original.NeuralNet.NeuralLayers[i].NeuronUnits[j].Weights[k]+0.1 ||
+					weight < original.NeuralNet.NeuralLayers[i].NeuronUnits[j].Weights[k]-0.1 {
+					t.Errorf("In neuron [%d, %d], weight mutated out of range [-0.1, 0.1]", i, j)
+				}
+			}
+		}
+	}
+
+	// Check if learning rate has mutated out of range [-0.05, 0.05]
+	if mlp.NeuralNet.L_rate > original.NeuralNet.L_rate+0.05 ||
+		mlp.NeuralNet.L_rate < original.NeuralNet.L_rate-0.05 {
+		t.Errorf("L_rate has mutated out of range [-0.05, 0.05]")
+	}
+
+	// Check if learning rate is out of the range (0, 1]
+	if mlp.NeuralNet.L_rate > 1 || mlp.NeuralNet.L_rate <= 0 {
+		t.Errorf("L_rate is out of range (0, 1]")
+	}
+}
+
 func TestAddNeuron(t *testing.T) {
 	mlpLogger.SetLevel(mlpLogger.ErrorLevel)
 

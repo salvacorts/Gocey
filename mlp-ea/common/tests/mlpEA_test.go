@@ -19,17 +19,17 @@ func TestTrainMLP(t *testing.T) {
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.ErrorLevel)
 	ga.Log.SetOutput(os.Stdout)
-	ga.Log.SetLevel(logrus.DebugLevel)
+	ga.Log.SetLevel(logrus.InfoLevel)
 	_, score, err := ga.TrainMLP(string(fileContent))
 	if err != nil {
 		t.Errorf("Error Training MLP: %s", err.Error())
 	}
 
-	expectedScore := 10.0
+	threshold := 30.0
 
-	if score < expectedScore {
-		t.Errorf("Got training score (%f) under threshold (%f)", score, expectedScore)
+	if score > threshold {
+		t.Errorf("Got training error (%f) obove threshold (%f)", score, threshold)
 	} else {
-		t.Logf("Got accuracy: %f\n", score)
+		t.Logf("Got Error: %f\n", score)
 	}
 }

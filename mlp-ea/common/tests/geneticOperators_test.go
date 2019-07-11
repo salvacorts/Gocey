@@ -51,7 +51,7 @@ func TestEvaluate(t *testing.T) {
 
 	score, err := genome.Evaluate()
 	if err != nil {
-		t.Errorf("Error training MLP: %s", err.Error())
+		t.Errorf("Error evaluating MLP: %s", err.Error())
 	}
 
 	if originalNN.L_rate != genome.(*ga.MLP).L_rate {
@@ -98,6 +98,61 @@ func TestEvaluate(t *testing.T) {
 	if score < expectedScore {
 		t.Errorf("Got training score (%f) under threshold (%f)", score, expectedScore)
 	}
+}
+
+func TestTrain(t *testing.T) {
+	filename := "../../../datasets/glass.csv"
+	fileContent, err := ioutil.ReadFile(filename)
+	if err != nil {
+		t.Errorf("Cannot open %s. Error: %s", filename, err.Error())
+	}
+
+	mlpLogger.SetLevel(mlpLogger.ErrorLevel)
+
+	var patterns, _, mapped = utils.LoadPatternsFromCSV(string(fileContent))
+	train, validation := v.TrainTestPatternSplit(patterns, 0.8, 1)
+
+	// Congigure MLP Factory
+	mlpFactory := common.MLPFactory{
+		InputLayers:     len(patterns[0].Features),
+		OutputLayers:    len(mapped),
+		MaxHiddenLayers: 30,
+		Tfunc:           mn.SigmoidalTransfer,
+		TfuncDeriv:      mn.SigmoidalTransferDerivate,
+		MaxLR:           0.3,
+		MinLR:           0.01,
+	}
+
+	common.Config = common.MLPConfig{
+		Epochs:        1,
+		Folds:         1,
+		Classes:       &mapped,
+		TrainingSet:   &train,
+		ValidationSet: &validation,
+	}
+
+	rnd := rand.New(rand.NewSource(7))
+	originalNN := mlpFactory.NewRandMLP(rnd)
+
+	score, err := originalNN.Evaluate()
+	if err != nil {
+		t.Errorf("Error evaluating MLP: %s", err.Error())
+	}
+
+	new := ga.Train(originalNN, rnd)
+
+	newScore, err := new.Evaluate()
+	if err != nil {
+		t.Errorf("Error evaluating new MLP: %s", err.Error())
+	}
+
+	if score <= newScore {
+		t.Errorf("Score after Training (%f) is not lower than before (%f",
+			newScore, score)
+	} else {
+		t.Logf("Before Train: %f - Now: %f", score, newScore)
+	}
+
 }
 
 func TestMutate(t *testing.T) {

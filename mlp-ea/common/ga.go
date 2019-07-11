@@ -61,14 +61,14 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 		TfuncDeriv:      mn.SigmoidalTransferDerivate,
 		MaxLR:           0.3,
 		MinLR:           0.01,
+	}
 
-		Config: MLPConfig{
-			Epochs:        10,
-			Folds:         1,
-			Classes:       &mapped,
-			TrainingSet:   &train,
-			ValidationSet: &validation,
-		},
+	Config = MLPConfig{
+		Epochs:        10,
+		Folds:         1,
+		Classes:       &mapped,
+		TrainingSet:   &train,
+		ValidationSet: &validation,
 	}
 
 	// Execute GA
@@ -85,5 +85,5 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 	best := ga.HallOfFame[0].Genome.(*MLP)
 	bestScore := ga.HallOfFame[0].Fitness
 
-	return best.NeuralNet, bestScore, nil
+	return mn.MultiLayerNetwork(*best), bestScore, nil
 }

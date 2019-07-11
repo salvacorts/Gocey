@@ -35,8 +35,7 @@ func (f MLPFactory) NewRandMLP(rng *rand.Rand) eaopt.Genome {
 
 	learningRate := f.MaxLR + rng.Float64()*(f.MaxLR-f.MinLR)
 
-	return &MLP{
-		NeuralNet: mn.PrepareMLPNet(layers, learningRate, f.Tfunc, f.TfuncDeriv),
-		Config:    f.Config,
-	}
+	new := mn.PrepareMLPNet(layers, learningRate, f.Tfunc, f.TfuncDeriv)
+
+	return (*MLP)(&new)
 }

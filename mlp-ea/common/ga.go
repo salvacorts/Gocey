@@ -3,10 +3,10 @@ package common
 import (
 	"time"
 
-	mn "github.com/made2591/go-perceptron-go/model/neural"
-	mv "github.com/made2591/go-perceptron-go/validation"
 	utils "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 	"github.com/salvacorts/eaopt"
+	mn "github.com/salvacorts/go-perceptron-go/model/neural"
+	mv "github.com/salvacorts/go-perceptron-go/validation"
 	"github.com/sirupsen/logrus"
 )
 
@@ -82,7 +82,7 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 		"ExecTime": time.Since(start),
 	}).Infof("Execution time: %s\n", time.Since(start))
 
-	best := ga.HallOfFame[0].Genome.(MLP)
+	best := ga.HallOfFame[0].Genome.(*MLP)
 	bestScore := ga.HallOfFame[0].Fitness
 
 	return best.NeuralNet, bestScore, nil

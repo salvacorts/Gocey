@@ -3,8 +3,8 @@ package common
 import (
 	"math/rand"
 
-	mn "github.com/made2591/go-perceptron-go/model/neural"
 	"github.com/salvacorts/eaopt"
+	mn "github.com/salvacorts/go-perceptron-go/model/neural"
 )
 
 // TransferFunction stands for a transfer function
@@ -35,7 +35,7 @@ func (f MLPFactory) NewRandMLP(rng *rand.Rand) eaopt.Genome {
 
 	learningRate := f.MaxLR + rng.Float64()*(f.MaxLR-f.MinLR)
 
-	return MLP{
+	return &MLP{
 		NeuralNet: mn.PrepareMLPNet(layers, learningRate, f.Tfunc, f.TfuncDeriv),
 		Config:    f.Config,
 	}

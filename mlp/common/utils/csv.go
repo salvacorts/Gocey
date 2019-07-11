@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	// this repo internal import
-	. "github.com/made2591/go-perceptron-go/model/neural"
-	mu "github.com/made2591/go-perceptron-go/util"
+	. "github.com/salvacorts/go-perceptron-go/model/neural"
+	mu "github.com/salvacorts/go-perceptron-go/util"
 )
 
 func LoadPatternsFromCSV(content string) ([]Pattern, error, []string) {

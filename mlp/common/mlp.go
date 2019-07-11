@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	mn "github.com/made2591/go-perceptron-go/model/neural"
-	v "github.com/made2591/go-perceptron-go/validation"
+	mn "github.com/salvacorts/go-perceptron-go/model/neural"
+	v "github.com/salvacorts/go-perceptron-go/validation"
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 )
 

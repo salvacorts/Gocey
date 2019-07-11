@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"runtime"
 
-	mn "github.com/made2591/go-perceptron-go/model/neural"
-	mu "github.com/made2591/go-perceptron-go/util"
+	mn "github.com/salvacorts/go-perceptron-go/model/neural"
+	mu "github.com/salvacorts/go-perceptron-go/util"
 )
 
 func getFunctionName(i interface{}) string {
@@ -15,7 +15,7 @@ func getFunctionName(i interface{}) string {
 }
 
 // MLPtoString retruns a string that represent a mlp
-func MLPtoString(mlp *mn.MultiLayerNetwork) string {
+func MLPtoString(mlp mn.MultiLayerNetwork) string {
 	out := ""
 
 	out += fmt.Sprintf("Lrate: %f\nT_func: %s\nT_func_d: %s\n",

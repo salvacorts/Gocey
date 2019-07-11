@@ -3,7 +3,7 @@ package common
 import (
 	"testing"
 
-	"github.com/made2591/go-perceptron-go/model/neural"
+	"github.com/salvacorts/go-perceptron-go/model/neural"
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 	mlpLogger "github.com/sirupsen/logrus"
 )

@@ -1,6 +1,6 @@
 package common
 
-import "github.com/made2591/go-perceptron-go/model/neural"
+import "github.com/salvacorts/go-perceptron-go/model/neural"
 
 func equalString(a, b []string) bool {
 	if len(a) != len(b) {

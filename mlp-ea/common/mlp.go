@@ -227,7 +227,7 @@ func SubstituteNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 func Train(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 	out := in.(*MLP)
 
-	mn.MLPTrain((*mn.MultiLayerNetwork)(out), *Config.TrainingSet, *Config.Classes, Config.Epochs)
+	mn.MLPTrain((*mn.MultiLayerNetwork)(out), *Config.TrainingSet, *Config.Classes, Config.Epochs, true)
 
 	Log.WithFields(logrus.Fields{
 		"level":  "debug",

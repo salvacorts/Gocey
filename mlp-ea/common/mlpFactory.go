@@ -3,6 +3,8 @@ package common
 import (
 	"math/rand"
 
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
+
 	"github.com/salvacorts/eaopt"
 	mn "github.com/salvacorts/go-perceptron-go/model/neural"
 )
@@ -13,12 +15,12 @@ type TransferFunction = func(float64) float64
 // MLPFactory is a type to create a factory of MLP randomly initialized
 type MLPFactory struct {
 	// Network topology
-	InputLayers     int
-	OutputLayers    int
-	MinHiddenLayers int
-	MaxHiddenLayers int
-	Tfunc           TransferFunction
-	TfuncDeriv      TransferFunction
+	InputLayers      int
+	OutputLayers     int
+	MinHiddenNeurons int
+	MaxHiddenNeurons int
+	Tfunc            TransferFunction
+	TfuncDeriv       TransferFunction
 
 	// Training Info configuration
 	MaxLR  float64
@@ -30,7 +32,7 @@ type MLPFactory struct {
 func (f MLPFactory) NewRandMLP(rng *rand.Rand) eaopt.Genome {
 	layers := []int{
 		f.InputLayers,
-		f.MinHiddenLayers + rng.Int()%f.MaxHiddenLayers,
+		utils.RandIntInRange(f.MinHiddenNeurons, f.MaxHiddenNeurons, rng),
 		f.OutputLayers}
 
 	learningRate := f.MaxLR + rng.Float64()*(f.MaxLR-f.MinLR)

@@ -19,7 +19,7 @@ func TestTrainMLP(t *testing.T) {
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.ErrorLevel)
 	ga.Log.SetOutput(os.Stdout)
-	ga.Log.SetLevel(logrus.DebugLevel)
+	ga.Log.SetLevel(logrus.InfoLevel)
 	_, score, err := ga.TrainMLP(string(fileContent))
 	if err != nil {
 		t.Errorf("Error Training MLP: %s", err.Error())

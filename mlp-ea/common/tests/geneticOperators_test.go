@@ -23,25 +23,25 @@ func TestEvaluate(t *testing.T) {
 	mlpLogger.SetLevel(mlpLogger.ErrorLevel)
 
 	var patterns, _, mapped = utils.LoadPatternsFromCSV(string(fileContent))
-	train, validation := v.TrainTestPatternSplit(patterns, 0.8, 1)
+	train, _ := v.TrainTestPatternSplit(patterns, 0.8, 1)
 
 	// Congigure MLP Factory
 	mlpFactory := common.MLPFactory{
-		InputLayers:     len(patterns[0].Features),
-		OutputLayers:    len(mapped),
-		MaxHiddenLayers: 30,
-		Tfunc:           mn.SigmoidalTransfer,
-		TfuncDeriv:      mn.SigmoidalTransferDerivate,
-		MaxLR:           0.3,
-		MinLR:           0.01,
+		InputLayers:      len(patterns[0].Features),
+		OutputLayers:     len(mapped),
+		MinHiddenNeurons: 2,
+		MaxHiddenNeurons: 20,
+		Tfunc:            mn.SigmoidalTransfer,
+		TfuncDeriv:       mn.SigmoidalTransferDerivate,
+		MaxLR:            0.3,
+		MinLR:            0.01,
 	}
 
 	common.Config = common.MLPConfig{
-		Epochs:        1,
-		Folds:         1,
-		Classes:       &mapped,
-		TrainingSet:   &train,
-		ValidationSet: &validation,
+		Epochs:      1,
+		Folds:       1,
+		Classes:     &mapped,
+		TrainingSet: &train,
 	}
 
 	rnd := rand.New(rand.NewSource(7))
@@ -110,25 +110,25 @@ func TestTrain(t *testing.T) {
 	mlpLogger.SetLevel(mlpLogger.ErrorLevel)
 
 	var patterns, _, mapped = utils.LoadPatternsFromCSV(string(fileContent))
-	train, validation := v.TrainTestPatternSplit(patterns, 0.8, 1)
+	train, _ := v.TrainTestPatternSplit(patterns, 0.8, 1)
 
 	// Congigure MLP Factory
 	mlpFactory := common.MLPFactory{
-		InputLayers:     len(patterns[0].Features),
-		OutputLayers:    len(mapped),
-		MaxHiddenLayers: 30,
-		Tfunc:           mn.SigmoidalTransfer,
-		TfuncDeriv:      mn.SigmoidalTransferDerivate,
-		MaxLR:           0.3,
-		MinLR:           0.01,
+		InputLayers:      len(patterns[0].Features),
+		OutputLayers:     len(mapped),
+		MinHiddenNeurons: 2,
+		MaxHiddenNeurons: 20,
+		Tfunc:            mn.SigmoidalTransfer,
+		TfuncDeriv:       mn.SigmoidalTransferDerivate,
+		MaxLR:            0.3,
+		MinLR:            0.01,
 	}
 
 	common.Config = common.MLPConfig{
-		Epochs:        1,
-		Folds:         1,
-		Classes:       &mapped,
-		TrainingSet:   &train,
-		ValidationSet: &validation,
+		Epochs:      1,
+		Folds:       1,
+		Classes:     &mapped,
+		TrainingSet: &train,
 	}
 
 	rnd := rand.New(rand.NewSource(7))

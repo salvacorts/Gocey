@@ -8,10 +8,18 @@ import (
 type neurons []mn.NeuronUnit
 
 func (n neurons) At(i int) interface{} {
+	if i > len(n)-1 {
+		Log.Fatalf("Trying to At %d when Len=%d", i, len(n))
+	}
+
 	return n[i]
 }
 
 func (n neurons) Set(i int, v interface{}) {
+	if i > len(n)-1 {
+		Log.Fatalf("Trying to Set %d when Len=%d", i, len(n))
+	}
+
 	n[i] = v.(mn.NeuronUnit)
 }
 
@@ -20,10 +28,20 @@ func (n neurons) Len() int {
 }
 
 func (n neurons) Swap(i, j int) {
+	if i > len(n)-1 || i > len(n)-1 {
+		Log.Fatalf("Trying to Swap %d:%d when Len=%d",
+			i, j, len(n))
+	}
+
 	n[i], n[j] = n[j], n[i]
 }
 
 func (n neurons) Slice(a, b int) eaopt.Slice {
+	if a > len(n)-1 || b > len(n) {
+		Log.Fatalf("Trying to get Slice in range %d:%d when Len=%d",
+			a, b, len(n))
+	}
+
 	return n[a:b]
 }
 

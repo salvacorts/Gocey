@@ -25,27 +25,26 @@ func TestEvaluate(t *testing.T) {
 	var patterns, _, mapped = utils.LoadPatternsFromCSV(string(fileContent))
 	train, _ := v.TrainTestPatternSplit(patterns, 0.8, 1)
 
-	// Congigure MLP Factory
-	mlpFactory := common.MLPFactory{
-		InputLayers:      len(patterns[0].Features),
-		OutputLayers:     len(mapped),
-		MinHiddenNeurons: 2,
-		MaxHiddenNeurons: 20,
-		Tfunc:            mn.SigmoidalTransfer,
-		TfuncDeriv:       mn.SigmoidalTransferDerivate,
-		MaxLR:            0.3,
-		MinLR:            0.01,
-	}
-
+	// Congigure MLP
 	common.Config = common.MLPConfig{
 		Epochs:      1,
 		Folds:       1,
 		Classes:     &mapped,
 		TrainingSet: &train,
+		FactoryCfg: common.MLPFactoryConfig{
+			InputLayers:      len(patterns[0].Features),
+			OutputLayers:     len(mapped),
+			MinHiddenNeurons: 2,
+			MaxHiddenNeurons: 20,
+			Tfunc:            mn.SigmoidalTransfer,
+			TfuncDeriv:       mn.SigmoidalTransferDerivate,
+			MaxLR:            0.3,
+			MinLR:            0.01,
+		},
 	}
 
 	rnd := rand.New(rand.NewSource(7))
-	genome := mlpFactory.NewRandMLP(rnd)
+	genome := common.NewRandMLP(rnd)
 
 	originalNN := genome.(*ga.MLP)
 
@@ -112,27 +111,26 @@ func TestTrain(t *testing.T) {
 	var patterns, _, mapped = utils.LoadPatternsFromCSV(string(fileContent))
 	train, _ := v.TrainTestPatternSplit(patterns, 0.8, 1)
 
-	// Congigure MLP Factory
-	mlpFactory := common.MLPFactory{
-		InputLayers:      len(patterns[0].Features),
-		OutputLayers:     len(mapped),
-		MinHiddenNeurons: 2,
-		MaxHiddenNeurons: 20,
-		Tfunc:            mn.SigmoidalTransfer,
-		TfuncDeriv:       mn.SigmoidalTransferDerivate,
-		MaxLR:            0.3,
-		MinLR:            0.01,
-	}
-
+	// Congigure MLP
 	common.Config = common.MLPConfig{
 		Epochs:      1,
 		Folds:       1,
 		Classes:     &mapped,
 		TrainingSet: &train,
+		FactoryCfg: common.MLPFactoryConfig{
+			InputLayers:      len(patterns[0].Features),
+			OutputLayers:     len(mapped),
+			MinHiddenNeurons: 2,
+			MaxHiddenNeurons: 20,
+			Tfunc:            mn.SigmoidalTransfer,
+			TfuncDeriv:       mn.SigmoidalTransferDerivate,
+			MaxLR:            0.3,
+			MinLR:            0.01,
+		},
 	}
 
 	rnd := rand.New(rand.NewSource(7))
-	originalNN := mlpFactory.NewRandMLP(rnd)
+	originalNN := common.NewRandMLP(rnd)
 
 	score, err := originalNN.Evaluate()
 	if err != nil {
@@ -252,6 +250,8 @@ func TestAddNeuron(t *testing.T) {
 			t.Errorf("At neuron [%d, %d], missing weights for added neuron", 1, i)
 		}
 	}
+
+	common.Config.FactoryCfg.MaxHiddenNeurons = 7
 }
 
 func TestRemoveNeuron(t *testing.T) {

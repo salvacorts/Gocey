@@ -10,10 +10,13 @@ html, body {
     grid-template-columns: [col] 50% [col] 50%;
     grid-template-rows: [row] auto [row] 30%;
     height: 100%;
+    max-height: 100%;
 }
 
 .box {
     padding: 1em;
+    display: flex;
+    align-items: center;
 }
 
 .a {
@@ -40,4 +43,5 @@ canvas {
     padding-top: 0.1em;
     padding-left: 1em;
     overflow: auto;
+    display: inline;
 }

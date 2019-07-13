@@ -50,7 +50,7 @@ const chartFitness = new Chart(chartFitness_ctx, {
         }]
     },
     options: {
-        responsive: false,
+        responsive: true,
         title: {
             display: true,
             text: 'Fitness'
@@ -96,7 +96,7 @@ const chartNeurons = new Chart(chartNeurons_ctx, {
         }]
     },
     options: {
-        responsive: false,
+        responsive: true,
         title: {
             display: true,
             text: 'Hidden Layer Neurons'

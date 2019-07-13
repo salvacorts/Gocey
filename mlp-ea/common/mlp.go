@@ -116,8 +116,9 @@ func (mlp *MLP) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 	}
 
 	// Swap learning rates
+	tmp := mlp.L_rate
 	mlp.L_rate = Y.(*MLP).L_rate
-	// TODO: swap also for Y
+	Y.(*MLP).L_rate = tmp
 
 	Log.WithFields(logrus.Fields{
 		"level":  "debug",
@@ -234,7 +235,6 @@ func SubstituteNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 }
 
 // Train is used to train the individual-net for a certain number of generations, using the QP algorithm.
-// TODO: Do BP here
 func Train(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 	out := in.(*MLP)
 

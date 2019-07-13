@@ -17,6 +17,7 @@ worker.onmessage = function(e) {
     p = document.createElement("P")
     p.appendChild(document.createTextNode(text))
     logs.appendChild(p)
+    logs.scrollTop = logs.scrollHeight
     console.log(text)
 
     // Append data to charts

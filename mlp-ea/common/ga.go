@@ -1,7 +1,6 @@
 package common
 
 import (
-	"log"
 	"time"
 
 	utils "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
@@ -19,7 +18,7 @@ var Config MLPConfig
 
 // TrainMLP trains a Multi Layer Perceptron
 func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
-	var start = time.Now()
+	start := time.Now()
 
 	// Patterns initialization
 	var patterns, _, mapped = utils.LoadPatternsFromCSV(csvdata)
@@ -31,20 +30,19 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 	}
 
 	// Configure ga
-	ga.NGenerations = 100
+	ga.NGenerations = generations
 	ga.NPops = 1
-	ga.PopSize = 100
+	ga.PopSize = popSize
 	ga.Model = getGenerationalModelRoulette()
 	ga.Callback = func(ga *eaopt.GA) {
 		Log.WithFields(logrus.Fields{
 			"level":               "info",
 			"Generation":          ga.Generations,
+			"Avg":                 ga.Populations[0].Individuals.FitAvg(),
 			"Fitness":             ga.HallOfFame[0].Fitness,
 			"HiddenLayer_Neurons": ga.HallOfFame[0].Genome.(*MLP).NeuralLayers[1].Length,
 		}).Infof("Best fitness at generation %d: %f", ga.Generations, ga.HallOfFame[0].Fitness)
 	}
-
-	ga.Logger = log.New(Log.Out, "[GA Stats] ", 0)
 
 	// Configure MLP
 	Config = MLPConfig{

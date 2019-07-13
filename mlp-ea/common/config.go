@@ -16,12 +16,15 @@ const (
 	// MutateRate states the probability of a neuron to be mutated once the Mutate operator is applied
 	MutateRate float64 = 1
 
-	mutProb              = 0.3
-	crossProb            = 0.3
-	addNeuronProb        = 0.3
-	removeNeuronProb     = 0.15
-	substituteNeuronProb = 0.15
-	trainProb            = 0.25
+	generations uint = 100
+	popSize     uint = 100
+
+	mutProb              float64 = 0.3
+	crossProb            float64 = 0.3
+	addNeuronProb        float64 = 0.3
+	removeNeuronProb     float64 = 0.15
+	substituteNeuronProb float64 = 0.15
+	trainProb            float64 = 0.1
 )
 
 // TransferFunction stands for a transfer function

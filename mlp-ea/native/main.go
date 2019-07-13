@@ -1,23 +1,33 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 
-	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common"
+	ga "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea/common"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	log.SetOutput(os.Stdout)
+	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.ErrorLevel)
+	ga.Log.SetOutput(os.Stdout)
+	ga.Log.SetLevel(logrus.InfoLevel)
 
-	filename := "../../datasets/iris.csv"
+	fmt.Println("HOLAAA")
+
+	filename := "../../datasets/glass.csv"
 	fileContent, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("Cannot open %s. Error: %s", filename, err.Error())
 	}
 
-	_, scores := common.TrainMLP(string(fileContent))
+	_, score, err := ga.TrainMLP(string(fileContent))
+	if err != nil {
+		fmt.Printf("Error Training MLP: %s", err.Error())
+	}
 
-	log.Printf("Scores: %v\n", scores)
+	fmt.Printf("Score: %v\n", score)
 }

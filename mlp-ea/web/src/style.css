@@ -1,0 +1,43 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: [col] 50% [col] 50%;
+    grid-template-rows: [row] auto [row] 30%;
+    height: 100%;
+}
+
+.box {
+    padding: 1em;
+}
+
+.a {
+    grid-column: col;
+    grid-row: row;
+}
+
+.b {
+    grid-column: col 2;
+    grid-row: row;
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.logBox {
+    grid-column: col / span 2;
+    grid-row: row 2;
+
+    background-color: #2d3436;
+    color: #fafafafa;
+    padding-top: 0.1em;
+    padding-left: 1em;
+    overflow: auto;
+}

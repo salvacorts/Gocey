@@ -4,22 +4,16 @@ import (
 	"log"
 	"time"
 
-	mn "github.com/salvacorts/go-perceptron-go/model/neural"
-	v "github.com/salvacorts/go-perceptron-go/validation"
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
+	mn "github.com/salvacorts/go-perceptron-go/model/neural"
 )
 
 // TrainMLP trains a Multi Layer Perceptron
-func TrainMLP(csvdata string) (mn.MultiLayerNetwork, []float64) {
+func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64) {
 	var start = time.Now()
 
 	// single layer neuron parameters
 	var learningRate = 0.01
-	var shuffle = 1
-
-	// training parameters
-	var epochs = 1
-	var folds = 2
 
 	// Patterns initialization
 	var patterns, _, mapped = utils.LoadPatternsFromCSV(csvdata)
@@ -34,9 +28,14 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, []float64) {
 	var mlp = mn.PrepareMLPNet(layers, learningRate, mn.SigmoidalTransfer, mn.SigmoidalTransferDerivate)
 
 	// compute scores for each folds execution
-	var scores = v.MLPKFoldValidation(&mlp, patterns, epochs, folds, shuffle, mapped)
+	mn.MLPTrain(&mlp, patterns, mapped, 100, true)
+
+	// Get error
+	predictions := utils.PredictN(&mlp, patterns)
+	predictionsR := utils.RoundPredictions(predictions)
+	_, testAcc := utils.AccuracyN(predictionsR, patterns)
 
 	log.Printf("Execution time: %s\n", time.Since(start))
 
-	return mlp, scores
+	return mlp, testAcc
 }

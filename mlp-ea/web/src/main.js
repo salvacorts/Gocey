@@ -12,6 +12,10 @@ generations = []
 worker.onmessage = function(e) {
     json = JSON.parse(e.data)
 
+    round = function(num) {
+        return Math.floor(num * 100) / 100
+    }
+
     // Append log to log box
     text = json.msg + ". Neurons: " + json.HiddenLayer_Neurons
     p = document.createElement("P")
@@ -21,8 +25,8 @@ worker.onmessage = function(e) {
     console.log(text)
 
     // Append data to charts
-    avg.push(json.Avg)
-    fitness.push(json.Fitness)
+    avg.push(round(json.Avg))
+    fitness.push(round(json.Fitness))
     generations.push(json.Generation)
     neurons.push(json.HiddenLayer_Neurons)
     chartFitness.update()
@@ -34,19 +38,29 @@ const chartFitness = new Chart(chartFitness_ctx, {
     data: {
         labels: generations,
         datasets: [{
-            label: 'Best Fitness',
+            label: 'Best Solution',
             data: fitness,
             backgroundColor: "#00b894",
             borderColor: "#00b894",
             fill: false,
             lineTension: 0,
+
+            datalabels: {
+                color: '#00b894',
+                align: 'top',
+            }
         }, {
-            label: 'Avg Fitness',
+            label: 'Avg',
             data: avg,
             backgroundColor: "#8e5ea2",
             borderColor: "#8e5ea2",
             fill: false,
             lineTension: 0,
+
+            datalabels: {
+                color: '#8e5ea2',
+                align: 'top',
+            }
         }]
     },
     options: {
@@ -87,12 +101,17 @@ const chartNeurons = new Chart(chartNeurons_ctx, {
     data: {
         labels: generations,
         datasets: [{
-            label: 'Best Neurons in hidden layer',
+            label: 'Best solution',
             data: neurons,
             backgroundColor: "#3e95cd",
             borderColor: "#3e95cd",
             fill: false,
             lineTension: 0,
+
+            datalabels: {
+                color: '#3e95cd',
+                align: 'top',
+            }
         }]
     },
     options: {
@@ -124,6 +143,6 @@ const chartNeurons = new Chart(chartNeurons_ctx, {
                     labelString: 'Neurons'
                 }
             }]
-        }
+        },
     }
 });

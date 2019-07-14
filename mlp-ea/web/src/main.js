@@ -18,9 +18,7 @@ worker.onmessage = function(e) {
 
     // Append log to log box
     text = json.msg + ". Neurons: " + json.HiddenLayer_Neurons
-    p = document.createElement("P")
-    p.appendChild(document.createTextNode(text))
-    logs.appendChild(p)
+    logs.innerHTML += "<br/>" + text
     logs.scrollTop = logs.scrollHeight
     console.log(text)
 

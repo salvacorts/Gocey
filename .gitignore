@@ -1,0 +1,6 @@
+node_modules/
+dist/
+profile.out
+memprofile.out
+*.test
+package-lock.json

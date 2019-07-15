@@ -12,3 +12,8 @@ assignees: salvacorts
 **Acceptance criteria**
 
 **Definition of Done**
+- [ ] Code Builds without error warning
+- [ ] Code is Unit Tested
+- [ ] Code is Deployed to system test environment and passed system tests
+- [ ] Build pushed to a demo server 
+- [ ] Documentation

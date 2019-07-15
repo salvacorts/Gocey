@@ -21,7 +21,7 @@ func main() {
 	ga.Log.SetLevel(logrus.InfoLevel)
 	ga.Log.SetFormatter(&logrus.JSONFormatter{})
 
-	resp, err := http.Get("datasets/glass.csv")
+	resp, err := http.Get("https://salvacorts.github.io/TFG-Parasitic-Metaheuristics/datasets/glass.csv")
 	if err != nil {
 		log.Fatalf("Cannot get dataset. Error: %s", err.Error())
 	}

@@ -1,5 +1,7 @@
 # Metaheurísticas distribuidas usando infraestructura efímera
 
+[WebAssembly Multi-Layer Perceptron Genetic Algorithm](https://salvacorts.github.io/TFG-Parasitic-Metaheuristics/mlp-ea/web/src/)
+
 ## Introducción
 Los entornos de computación modernos ofrecen todo tipo de facilidades para llevar a cabo computaciones complejas: sistemas concurrentes, distribuidos, e incluso voluntarios basados en la conexión, a través del navegador, de usuarios a un navegador.
 

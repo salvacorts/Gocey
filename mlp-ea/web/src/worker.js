@@ -1,4 +1,4 @@
-importScripts("/wasm_exec.js")
+importScripts("wasm_exec.js")
 
 if (!WebAssembly.instantiateStreaming) { // polyfill
     WebAssembly.instantiateStreaming = async (resp, importObject) => {
@@ -9,7 +9,7 @@ if (!WebAssembly.instantiateStreaming) { // polyfill
 
 const go = new self.Go();
 
-WebAssembly.instantiateStreaming(fetch("/go/wasm/main.wasm"), go.importObject).then(async (result) => {
+WebAssembly.instantiateStreaming(fetch("go/wasm/main.wasm"), go.importObject).then(async (result) => {
 let mod = result.module;
 let inst = result.instance;
 

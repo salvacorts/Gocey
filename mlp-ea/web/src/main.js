@@ -42,11 +42,6 @@ const chartFitness = new Chart(chartFitness_ctx, {
             borderColor: "#00b894",
             fill: false,
             lineTension: 0,
-
-            datalabels: {
-                color: '#00b894',
-                align: 'top',
-            }
         }, {
             label: 'Avg',
             data: avg,
@@ -54,11 +49,6 @@ const chartFitness = new Chart(chartFitness_ctx, {
             borderColor: "#8e5ea2",
             fill: false,
             lineTension: 0,
-
-            datalabels: {
-                color: '#8e5ea2',
-                align: 'top',
-            }
         }]
     },
     options: {
@@ -105,11 +95,6 @@ const chartNeurons = new Chart(chartNeurons_ctx, {
             borderColor: "#3e95cd",
             fill: false,
             lineTension: 0,
-
-            datalabels: {
-                color: '#3e95cd',
-                align: 'top',
-            }
         }]
     },
     options: {

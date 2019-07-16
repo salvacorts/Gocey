@@ -6,7 +6,6 @@ import (
 	utils "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 	"github.com/salvacorts/eaopt"
 	mn "github.com/salvacorts/go-perceptron-go/model/neural"
-	mu "github.com/salvacorts/go-perceptron-go/util"
 	mv "github.com/salvacorts/go-perceptron-go/validation"
 	"github.com/sirupsen/logrus"
 )
@@ -39,23 +38,20 @@ func NewRandMLP(rng *rand.Rand) eaopt.Genome {
 func (mlp *MLP) Evaluate() (float64, error) {
 	copy := mlp.Clone().(*MLP)
 
-	// Train a copy of the the network in one epoch
-	scores := mv.MLPKFoldValidation(
-		(*mn.MultiLayerNetwork)(copy),
-		*Config.TrainingSet,
-		Config.Epochs,
-		Config.Folds,
-		0,
-		*Config.Classes)
+	train, validation := mv.TrainTestPatternSplit(*Config.TrainingSet, 0.8, 1)
 
-	accuracy, _ := mu.MaxInSlice(scores)
+	mn.MLPTrain((*mn.MultiLayerNetwork)(copy), train, *Config.Classes,
+		Config.Epochs, true)
 
-	return 100 - accuracy, nil
+	predictions := utils.PredictN((*mn.MultiLayerNetwork)(copy), validation)
+	predictionsR := utils.RoundPredictions(predictions)
+	_, acc := utils.AccuracyN(predictionsR, validation)
+
+	return 100 - acc, nil
 }
 
 // Mutate modifies the weights of certain neurons, at random, depending on the application rate.
-// Modifies the weights of the network after each epoch of network training,
-// adding or subtracting a small random number that follows uniform distribution with the interval [-0.1, 0.1].
+// dding or subtracting a small random number that follows uniform distribution with the interval [-0.1, 0.1].
 // The learning rate is modified by adding a small random number that follows uniform distribution
 // in the interval [-0.05, 0.05]
 func (mlp *MLP) Mutate(rng *rand.Rand) {
@@ -127,7 +123,7 @@ func (mlp *MLP) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 	}).Debug("Crossover operator completed.")
 }
 
-// AddNeuron s intended to performincremental learning: it starts with a small structure
+// AddNeuron is intended to perform incremental learning: it starts with a small structure
 // and increments it, if neccesary, by adding new hidden units
 // TODO: 2 veces probabilidad de eliminar y poner limite de tamaño
 func AddNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
@@ -234,7 +230,7 @@ func SubstituteNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 	return out
 }
 
-// Train is used to train the individual-net for a certain number of generations, using the QP algorithm.
+// Train is used to train the individual-net for a certain number of generations, using BP algorithm.
 func Train(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 	out := in.(*MLP)
 

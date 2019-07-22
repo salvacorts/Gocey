@@ -57,7 +57,7 @@ func getSteadyStateModel() eaopt.Model {
 
 func getGenerationalModelElistism() eaopt.Model {
 	return eaopt.ModGenerational{
-		Selector:  eaopt.SelElitism{SortFunc: SortByFitnessAndNeurons},
+		//Selector:  eaopt.SelElitism{SortFunc: SortByFitnessAndNeurons},
 		MutRate:   mutProb,
 		CrossRate: crossProb,
 

@@ -16,8 +16,6 @@ func main() {
 	ga.Log.SetOutput(os.Stdout)
 	ga.Log.SetLevel(logrus.InfoLevel)
 
-	fmt.Println("HOLAAA")
-
 	filename := "../../datasets/glass.csv"
 	fileContent, err := ioutil.ReadFile(filename)
 	if err != nil {

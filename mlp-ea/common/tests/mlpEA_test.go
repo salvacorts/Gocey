@@ -74,7 +74,7 @@ func TestTrainMLP(t *testing.T) {
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.ErrorLevel)
 	ga.Log.SetOutput(os.Stdout)
-	ga.Log.SetLevel(logrus.ErrorLevel)
+	ga.Log.SetLevel(logrus.InfoLevel)
 
 	_, score, err := ga.TrainMLP(string(fileContent))
 	if err != nil {

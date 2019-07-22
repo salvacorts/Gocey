@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package common;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.gostring_all) = true;
+option (gogoproto.goproto_stringer_all) = false;
+option (gogoproto.stringer_all) =  true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+
+// For tests
+option (gogoproto.testgen_all) = true;
+option (gogoproto.equal_all) = true;
+option (gogoproto.populate_all) = true;
+
+enum TransferFunc {
+    SIGMOIDAL = 0;
+}
+
+message NeuronUnit {
+    repeated double Weights = 1;
+    double Bias = 2;
+    double Lrate = 3;
+    double Value = 4;
+    double Delta = 5;
+}
+
+message NeuralLayer {
+    repeated NeuronUnit NeuronUnits = 1 [(gogoproto.nullable) = false];
+    int64 Length = 2;
+}
+
+message MultiLayerNetwork {
+    double L_rate = 1;
+    repeated NeuralLayer NeuralLayers = 2 [(gogoproto.nullable) = false];
+    TransferFunc T_func = 3;  // TODO: change for an enum
+}

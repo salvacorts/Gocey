@@ -1,7 +1,7 @@
 from fabric import task
 
-@task
-def build_web_mlp(c):
+@task(optional=['test'])
+def build_web_mlp(c, test=False):
     """
         Build website that runs a MLP. Uoutput will be in mlp/web/dist
     """    
@@ -13,14 +13,17 @@ def build_web_mlp(c):
         c.run("cp -r ../../datasets dist/")
     
     build_web_mlp_wasm(c)
-    test_web(c)
 
-@task
-def build_web_mlp_wasm(c):
+    if test:
+        test_web(c)
+
+@task(optional=['test'])
+def build_web_mlp_wasm(c, test=False):
     """
         Build wasm file for Go. Output goes to mlp/web/dist
     """    
-    test_common(c)
+    if test:
+        test_common(c) 
 
     with c.cd("web"):
         with c.cd("src/components/go"):

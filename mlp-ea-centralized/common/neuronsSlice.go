@@ -1,10 +1,11 @@
 package common
 
 import (
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/mlp"
 	"github.com/salvacorts/eaopt"
 )
 
-type neurons []NeuronUnit
+type neurons []mlp.NeuronUnit
 
 func (n neurons) At(i int) interface{} {
 	if i > len(n)-1 {
@@ -19,7 +20,7 @@ func (n neurons) Set(i int, v interface{}) {
 		Log.Fatalf("Trying to Set %d when Len=%d", i, len(n))
 	}
 
-	n[i] = v.(NeuronUnit)
+	n[i] = v.(mlp.NeuronUnit)
 }
 
 func (n neurons) Len() int {

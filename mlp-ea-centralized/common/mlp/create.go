@@ -1,6 +1,16 @@
-package common
+package mlp
 
-import "math/rand"
+import (
+	"math/rand"
+
+	"github.com/sirupsen/logrus"
+)
+
+// ScalingFactor is Scaling factor for float64 generated random values
+const ScalingFactor float64 = 0.0000000000001 // TODO: Check if this is really useful
+
+// Logger for MLP
+var Logger *logrus.Logger
 
 // RandomNeuronInit initialize neuron weight, bias and learning rate using NormFloat64 random value.
 func RandomNeuronInit(neuron *NeuronUnit, dim int) {

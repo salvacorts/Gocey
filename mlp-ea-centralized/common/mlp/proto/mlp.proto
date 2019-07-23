@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package common;
+package mlp;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
@@ -10,6 +10,7 @@ option (gogoproto.stringer_all) =  true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.sizer_all) = true;
 option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.goproto_getters_all) = false;
 
 // For tests
 option (gogoproto.testgen_all) = true;
@@ -34,7 +35,7 @@ message NeuralLayer {
 }
 
 message MultiLayerNetwork {
-    double L_rate = 1;
+    double LRate = 1;
     repeated NeuralLayer NeuralLayers = 2 [(gogoproto.nullable) = false];
-    TransferFunc T_func = 3;  // TODO: change for an enum
+    TransferFunc TFunc = 3;  // TODO: change for an enum
 }

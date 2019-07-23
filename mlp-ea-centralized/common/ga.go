@@ -1,8 +1,10 @@
 package common
 
 import (
+	"math/rand"
 	"time"
 
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/mlp"
 	utils "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 	"github.com/salvacorts/eaopt"
 	mv "github.com/salvacorts/go-perceptron-go/validation"
@@ -16,31 +18,37 @@ var Log = logrus.New()
 var Config MLPConfig
 
 // TrainMLP trains a Multi Layer Perceptron
-func TrainMLP(csvdata string) (MultiLayerNetwork, float64, error) {
+func TrainMLP(csvdata string) (mlp.MultiLayerNetwork, float64, error) {
 	start := time.Now()
 
 	// Patterns initialization
 	var patterns, _, mapped = utils.LoadPatternsFromCSV(csvdata)
 	train, test := mv.TrainTestPatternSplit(patterns, 0.8, 1)
 
-	ga, err := eaopt.NewDefaultGAConfig().NewGA()
-	if err != nil {
-		return MultiLayerNetwork{}, 0, err
+	ga := PipedPoolModel{
+		Rnd:          rand.New(rand.NewSource(7)),
+		KeepBest:     true,
+		SortFunction: SortByFitnessAndNeurons,
+		PopSize:      popSize,
+		CrossRate:    crossProb,
+		MutRate:      mutProb,
 	}
 
-	// Configure ga
-	ga.NGenerations = generations
-	ga.NPops = 1
-	ga.PopSize = popSize
-	ga.Model = getGenerationalModelRoulette()
-	ga.Callback = func(ga *eaopt.GA) {
+	ga.Callback = func(ga PipedPoolModel) {
 		Log.WithFields(logrus.Fields{
 			"level":               "info",
 			"Generation":          ga.Generations,
-			"Avg":                 ga.Populations[0].Individuals.FitAvg(),
-			"Fitness":             ga.HallOfFame[0].Fitness,
-			"HiddenLayer_Neurons": ga.HallOfFame[0].Genome.(*MultiLayerNetwork).NeuralLayers[1].Length,
-		}).Infof("Best fitness at generation %d: %f", ga.Generations, ga.HallOfFame[0].Fitness)
+			"Avg":                 ga.Population.FitAvg(),
+			"Fitness":             ga.BestSolution.Fitness,
+			"HiddenLayer_Neurons": ga.BestSolution.Genome.(*MLP).NeuralLayers[1].Length,
+		}).Infof("Best fitness at generation %d: %f", ga.Generations, ga.BestSolution.Fitness)
+	}
+
+	ga.ExtraOperators = []eaopt.ExtraOperator{
+		eaopt.ExtraOperator{Operator: AddNeuron, Probability: addNeuronProb},
+		eaopt.ExtraOperator{Operator: RemoveNeuron, Probability: removeNeuronProb},
+		eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: substituteNeuronProb},
+		eaopt.ExtraOperator{Operator: Train, Probability: trainProb},
 	}
 
 	// Configure MLP
@@ -54,32 +62,29 @@ func TrainMLP(csvdata string) (MultiLayerNetwork, float64, error) {
 			OutputLayers:     len(mapped),
 			MinHiddenNeurons: 2,
 			MaxHiddenNeurons: 20,
-			Tfunc:            TransferFunc_SIGMOIDAL,
+			Tfunc:            mlp.TransferFunc_SIGMOIDAL,
 			MaxLR:            0.3,
 			MinLR:            0.01,
 		},
 	}
 
 	// Execute GA
-	err = ga.Minimize(NewRandMLP)
-	if err != nil {
-		return MultiLayerNetwork{}, 0, err
-	}
+	ga.Minimize()
 
 	Log.WithFields(logrus.Fields{
 		"level":    "info",
 		"ExecTime": time.Since(start),
 	}).Infof("Execution time: %s", time.Since(start))
 
-	best := ga.HallOfFame[0].Genome.(*MultiLayerNetwork)
-	bestScore := ga.HallOfFame[0].Fitness
+	best := ga.BestSolution.Genome.(*MLP)
+	bestScore := ga.BestSolution.Fitness
 
 	Log.WithFields(logrus.Fields{
 		"level":           "info",
 		"TrainingFitness": bestScore,
 	}).Infof("Training Error: %f", bestScore)
 
-	predictions := PredictN((*MultiLayerNetwork)(best), test)
+	predictions := mlp.PredictN((*mlp.MultiLayerNetwork)(best), test)
 	predictionsR := utils.RoundPredictions(predictions)
 	_, testAcc := utils.AccuracyN(predictionsR, test)
 
@@ -88,5 +93,5 @@ func TrainMLP(csvdata string) (MultiLayerNetwork, float64, error) {
 		"TestFitness": 100 - testAcc,
 	}).Infof("Test Error: %f", 100-testAcc)
 
-	return MultiLayerNetwork(*best), bestScore, nil
+	return mlp.MultiLayerNetwork(*best), bestScore, nil
 }

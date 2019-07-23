@@ -1,4 +1,4 @@
-package common
+package mlp
 
 import mn "github.com/salvacorts/go-perceptron-go/model/neural"
 

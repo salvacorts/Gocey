@@ -3,11 +3,15 @@ package common
 import (
 	"math/rand"
 
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/mlp"
 	utils "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 	"github.com/salvacorts/eaopt"
 	mv "github.com/salvacorts/go-perceptron-go/validation"
 	"github.com/sirupsen/logrus"
 )
+
+// MLP Implements the eaopt.Genome interface for mlp.MultilayerNetwork
+type MLP mlp.MultiLayerNetwork
 
 // NewRandMLP creates a randomly initialized MLP
 func NewRandMLP(rng *rand.Rand) eaopt.Genome {
@@ -23,23 +27,23 @@ func NewRandMLP(rng *rand.Rand) eaopt.Genome {
 	learningRate := Config.FactoryCfg.MaxLR +
 		utils.RandFloatInRange(Config.FactoryCfg.MinLR, Config.FactoryCfg.MaxLR, rng)
 
-	new := PrepareMLPNet(
+	new := mlp.PrepareMLPNet(
 		layers, learningRate, Config.FactoryCfg.Tfunc)
 
-	return (*MultiLayerNetwork)(&new)
+	return (*MLP)(&new)
 }
 
 // Evaluate a MLP by getting its accuracy
 // TODO: Compare also number of neurons
-func (mlp *MultiLayerNetwork) Evaluate() (float64, error) {
-	copy := mlp.Clone().(*MultiLayerNetwork)
+func (nn *MLP) Evaluate() (float64, error) {
+	copy := nn.Clone().(*MLP)
 
 	train, validation := mv.TrainTestPatternSplit(*Config.TrainingSet, 0.8, 1)
 
-	MLPTrain((*MultiLayerNetwork)(copy), train, *Config.Classes,
+	mlp.MLPTrain((*mlp.MultiLayerNetwork)(copy), train, *Config.Classes,
 		Config.Epochs, true)
 
-	predictions := PredictN((*MultiLayerNetwork)(copy), validation)
+	predictions := mlp.PredictN((*mlp.MultiLayerNetwork)(copy), validation)
 	predictionsR := utils.RoundPredictions(predictions)
 	_, acc := utils.AccuracyN(predictionsR, validation)
 
@@ -50,16 +54,16 @@ func (mlp *MultiLayerNetwork) Evaluate() (float64, error) {
 // dding or subtracting a small random number that follows uniform distribution with the interval [-0.1, 0.1].
 // The learning rate is modified by adding a small random number that follows uniform distribution
 // in the interval [-0.05, 0.05]
-func (mlp *MultiLayerNetwork) Mutate(rng *rand.Rand) {
-	indexNL := utils.RandIntInRange(1, len(mlp.NeuralLayers)-1, rng)
+func (nn *MLP) Mutate(rng *rand.Rand) {
+	indexNL := utils.RandIntInRange(1, len(nn.NeuralLayers)-1, rng)
 
 	// Modifies the weights of certain neurons, at random, depending on the application rate
-	for i := range mlp.NeuralLayers[indexNL].NeuronUnits {
+	for i := range nn.NeuralLayers[indexNL].NeuronUnits {
 		if rng.Float64() < MutateRate {
-			u := utils.RandFloatInRange(-0.1, 0.1, rng) * ScalingFactor
+			u := utils.RandFloatInRange(-0.1, 0.1, rng) * mlp.ScalingFactor
 
-			for j := range mlp.NeuralLayers[indexNL].NeuronUnits[i].Weights {
-				mlp.NeuralLayers[indexNL].NeuronUnits[i].Weights[j] += u
+			for j := range nn.NeuralLayers[indexNL].NeuronUnits[i].Weights {
+				nn.NeuralLayers[indexNL].NeuronUnits[i].Weights[j] += u
 			}
 		}
 	}
@@ -68,15 +72,15 @@ func (mlp *MultiLayerNetwork) Mutate(rng *rand.Rand) {
 	if rng.Float64() < MutateRate {
 		u := utils.RandFloatInRange(-0.05, 0.05, rng)
 
-		newLR := mlp.LRate + u
+		newLR := nn.LRate + u
 
 		// If by adding u the new LR is too high or small,
 		// substract it to be in the desired range
 		if newLR <= 0 || newLR > 1 {
-			newLR = mlp.LRate - u
+			newLR = nn.LRate - u
 		}
 
-		mlp.LRate = newLR
+		nn.LRate = newLR
 	}
 
 	Log.WithFields(logrus.Fields{
@@ -92,25 +96,25 @@ func (mlp *MultiLayerNetwork) Mutate(rng *rand.Rand) {
 // some hidden neurons along with their in and out connections, from each parent
 // make one offspring and the remaining hidden neurons make the other one.
 // The learningrate is swapped between the two nets.
-func (mlp *MultiLayerNetwork) Crossover(Y eaopt.Genome, rng *rand.Rand) {
-	n := len(mlp.NeuralLayers)
+func (nn *MLP) Crossover(Y eaopt.Genome, rng *rand.Rand) {
+	n := len(nn.NeuralLayers)
 
-	if len(Y.(*MultiLayerNetwork).NeuralLayers) > n {
-		n = len(Y.(*MultiLayerNetwork).NeuralLayers)
+	if len(Y.(*MLP).NeuralLayers) > n {
+		n = len(Y.(*MLP).NeuralLayers)
 	}
 
 	// Perform a multipoint cross-over on each hidden layer
 	for i := 1; i < n-1; i++ {
-		p1 := neurons(mlp.NeuralLayers[i].NeuronUnits)
-		p2 := neurons(Y.(*MultiLayerNetwork).NeuralLayers[i].NeuronUnits)
+		p1 := neurons(nn.NeuralLayers[i].NeuronUnits)
+		p2 := neurons(Y.(*MLP).NeuralLayers[i].NeuronUnits)
 
 		eaopt.CrossGNX(p1, p2, 2, rng)
 	}
 
 	// Swap learning rates
-	tmp := mlp.LRate
-	mlp.LRate = Y.(*MultiLayerNetwork).LRate
-	Y.(*MultiLayerNetwork).LRate = tmp
+	tmp := nn.LRate
+	nn.LRate = Y.(*MLP).LRate
+	Y.(*MLP).LRate = tmp
 
 	Log.WithFields(logrus.Fields{
 		"level":  "debug",
@@ -123,10 +127,10 @@ func (mlp *MultiLayerNetwork) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 // and increments it, if neccesary, by adding new hidden units
 // TODO: 2 veces probabilidad de eliminar y poner limite de tamaño
 func AddNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
-	out := in.(*MultiLayerNetwork)
+	out := in.(*MLP)
 
 	indexNL := utils.RandIntInRange(1, len(out.NeuralLayers)-1, rng)
-	newNeuron := NeuronUnit{}
+	newNeuron := mlp.NeuronUnit{}
 
 	opLogger := Log.WithFields(logrus.Fields{
 		"level":   "debug",
@@ -143,7 +147,7 @@ func AddNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 		return out
 	}
 
-	RandomNeuronInit(&newNeuron, int(out.NeuralLayers[indexNL-1].Length))
+	mlp.RandomNeuronInit(&newNeuron, int(out.NeuralLayers[indexNL-1].Length))
 
 	out.NeuralLayers[indexNL].Length++
 	out.NeuralLayers[indexNL].NeuronUnits =
@@ -153,7 +157,7 @@ func AddNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 	for i := 0; i < int(out.NeuralLayers[indexNL+1].Length); i++ {
 		out.NeuralLayers[indexNL+1].NeuronUnits[i].Weights =
 			append(out.NeuralLayers[indexNL+1].NeuronUnits[i].Weights,
-				rng.NormFloat64()*ScalingFactor)
+				rng.NormFloat64()*mlp.ScalingFactor)
 	}
 
 	opLogger.Debugf("AddNeuron operator completed. Now %d",
@@ -164,7 +168,7 @@ func AddNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 
 // RemoveNeuron eliminates one hidden neuron at random
 func RemoveNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
-	out := in.(*MultiLayerNetwork)
+	out := in.(*MLP)
 
 	indexNL := utils.RandIntInRange(1, len(out.NeuralLayers)-1, rng)
 	indexNU := utils.RandIntInRange(0, int(out.NeuralLayers[indexNL].Length), rng)
@@ -187,7 +191,7 @@ func RemoveNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 
 	out.NeuralLayers[indexNL].Length--
 	out.NeuralLayers[indexNL].NeuronUnits =
-		Remove(out.NeuralLayers[indexNL].NeuronUnits, indexNU)
+		mlp.Remove(out.NeuralLayers[indexNL].NeuronUnits, indexNU)
 
 	// Remove weights for the removed neuron in the following layer
 	for i := 0; i < int(out.NeuralLayers[indexNL+1].Length); i++ {
@@ -204,7 +208,7 @@ func RemoveNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 // SubstituteNeuron replaces one hiddenlayer neuron at random with a new one,
 // initialized with random weights
 func SubstituteNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
-	out := in.(*MultiLayerNetwork)
+	out := in.(*MLP)
 
 	indexNL := utils.RandIntInRange(1, len(out.NeuralLayers)-1, rng)
 	indexNU := utils.RandIntInRange(0, len(out.NeuralLayers[indexNL].NeuronUnits), rng)
@@ -212,7 +216,7 @@ func SubstituteNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 
 	for i := 0; i < dim; i++ {
 		out.NeuralLayers[indexNL].NeuronUnits[indexNU].Weights[i] =
-			rng.NormFloat64() * ScalingFactor
+			rng.NormFloat64() * mlp.ScalingFactor
 	}
 
 	Log.WithFields(logrus.Fields{
@@ -228,10 +232,10 @@ func SubstituteNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 
 // Train is used to train the individual-net for a certain number of generations, using BP algorithm.
 func Train(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
-	out := in.(*MultiLayerNetwork)
+	out := in.(*MLP)
 
-	MLPTrain(
-		out,
+	mlp.MLPTrain(
+		(*mlp.MultiLayerNetwork)(out),
 		*Config.TrainingSet,
 		*Config.Classes, TrainEpochs,
 		true)
@@ -249,20 +253,20 @@ func Train(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 // TODO: AddLayer and RemoveLayer operators
 
 // Clone a MLP to produce a new one that points to a different one by doing a deep copy.
-func (mlp *MultiLayerNetwork) Clone() eaopt.Genome {
-	new := MultiLayerNetwork{
-		LRate:        mlp.LRate,
-		TFunc:        mlp.TFunc,
-		NeuralLayers: make([]NeuralLayer, len(mlp.NeuralLayers)),
+func (nn *MLP) Clone() eaopt.Genome {
+	new := MLP{
+		LRate:        nn.LRate,
+		TFunc:        nn.TFunc,
+		NeuralLayers: make([]mlp.NeuralLayer, len(nn.NeuralLayers)),
 	}
 
-	copy(new.NeuralLayers, mlp.NeuralLayers)
+	copy(new.NeuralLayers, nn.NeuralLayers)
 
 	for i := range new.NeuralLayers {
-		new.NeuralLayers[i].Length = mlp.NeuralLayers[i].Length
+		new.NeuralLayers[i].Length = nn.NeuralLayers[i].Length
 
 		new.NeuralLayers[i].NeuronUnits =
-			neurons(mlp.NeuralLayers[i].NeuronUnits).Copy().(neurons)
+			neurons(nn.NeuralLayers[i].NeuronUnits).Copy().(neurons)
 	}
 
 	return &new

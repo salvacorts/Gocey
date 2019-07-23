@@ -1,4 +1,4 @@
-package common
+package mlp
 
 import (
 	math "math"
@@ -6,6 +6,7 @@ import (
 	mn "github.com/salvacorts/go-perceptron-go/model/neural"
 )
 
+// TransferF is the tranfer function
 type TransferF = func(float64) float64
 
 // Execute a multi layer Perceptron neural network.
@@ -32,16 +33,6 @@ func Execute(mlp *MultiLayerNetwork, s *mn.Pattern, tFunc TransferF, options ...
 		// setup value of each neurons in context layers to 0.5
 		mlp.NeuralLayers[0].NeuronUnits[i].Value = 0.5
 	}
-
-	//OLD: TODO REMOVE
-	// show pattern to network =>
-	//for i := 0; i < mlp.NeuralLayers[0].Length; i++ {
-	//
-	//	// setup value of each neurons in first layers to respective features of pattern
-	//	mlp.NeuralLayers[0].NeuronUnits[i].Value = s.Features[i]
-	//
-	//}
-	//OLD: END REMOVE
 
 	// execute - hiddens + output
 	// for each layers from first hidden to output

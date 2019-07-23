@@ -1,14 +1,14 @@
 package common
 
-import mn "github.com/salvacorts/go-perceptron-go/model/neural"
+import (
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/mlp"
+	mn "github.com/salvacorts/go-perceptron-go/model/neural"
+)
 
 const (
 	// Precission states the fitness precission.
 	// e.g. 100 is 2 decimals (default)
 	Precission float64 = 100
-
-	// ScalingFactor is Scaling factor for float64 generated random values
-	ScalingFactor float64 = 0.0000000000001 // TODO: Check if this is really useful
 
 	// TrainEpochs states how many epochs to train the MLP in the Train operator
 	TrainEpochs int = 100
@@ -37,7 +37,7 @@ type MLPFactoryConfig struct {
 	OutputLayers     int
 	MinHiddenNeurons int
 	MaxHiddenNeurons int
-	Tfunc            TransferFunc
+	Tfunc            mlp.TransferFunc
 
 	// Training Info configuration
 	MaxLR float64

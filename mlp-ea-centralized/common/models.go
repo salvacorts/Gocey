@@ -22,11 +22,11 @@ func SortByFitnessAndNeurons(indis eaopt.Individuals) {
 			neuronsI := 0
 			neuronsJ := 0
 
-			for _, l := range indis[i].Genome.(*MultiLayerNetwork).NeuralLayers {
+			for _, l := range indis[i].Genome.(*MLP).NeuralLayers {
 				neuronsI += int(l.Length)
 			}
 
-			for _, l := range indis[j].Genome.(*MultiLayerNetwork).NeuralLayers {
+			for _, l := range indis[j].Genome.(*MLP).NeuralLayers {
 				neuronsJ += int(l.Length)
 			}
 

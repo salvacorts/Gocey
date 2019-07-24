@@ -7,9 +7,14 @@ import (
 	"github.com/salvacorts/eaopt"
 )
 
+type indivInfo struct {
+	Generation int
+	Individual eaopt.Individual
+}
+
 // Pipe represents a function that applies an operator to a Genome that
 // comes from the first channel and goes through the second channel
-type Pipe = func(chan eaopt.Individual, chan eaopt.Individual)
+type Pipe = func(in, out chan eaopt.Individual)
 
 // PipedPoolModel is a evolutionary algorithm model that uses channels to apply
 // genetic operators over a population
@@ -18,17 +23,35 @@ type PipedPoolModel struct {
 	KeepBest       bool
 	SortFunction   func(eaopt.Individuals)
 	ExtraOperators []eaopt.ExtraOperator
-	Callback       func(*PipedPoolModel)
+
+	// Callbacks
+	BestCallback       func(*PipedPoolModel)
+	GenerationCallback func(*PipedPoolModel)
 
 	CrossRate float64
 	MutRate   float64
 
-	PopSize      uint
-	Generations  uint
-	BestSolution eaopt.Individual
-	Population   eaopt.Individuals // TODO: make this a map and put the number of generations on it
+	PopSize       int
+	maxGeneration int
+	Generation    int
+	BestSolution  eaopt.Individual
 
-	pipeline []Pipe
+	population map[string]*indivInfo
+	pipeline   []Pipe
+
+	// Stats
+	fitAvg float64
+}
+
+// MakePool Creates a new pool with default configuration
+func MakePool() PipedPoolModel {
+	return PipedPoolModel{
+		Generation: 0,
+		population: make(map[string]*indivInfo),
+		BestSolution: eaopt.Individual{
+			Fitness: math.Inf(1),
+		},
+	}
 }
 
 // Init initialized the model by creating a pipeline of channels with the different
@@ -53,14 +76,10 @@ func (mod *PipedPoolModel) init() {
 	}
 
 	// Create initial population
-	mod.Population = make(eaopt.Individuals, mod.PopSize)
-
-	for i := range mod.Population {
-		mod.Population[i] = eaopt.NewIndividual(
-			NewRandMLP(mod.Rnd), mod.Rnd)
+	for i := 0; i < mod.PopSize; i++ {
+		indi := eaopt.NewIndividual(NewRandMLP(mod.Rnd), mod.Rnd)
+		mod.population[indi.ID] = &indivInfo{0, indi}
 	}
-
-	mod.BestSolution.Fitness = math.Inf(1)
 }
 
 // Minimize runs the algorithm by connecting the pipes
@@ -83,8 +102,8 @@ func (mod PipedPoolModel) Minimize() {
 	go mod.pipeline[len(mod.pipeline)-1](previous, start)
 
 	// Put all individuals of the population in the first channel
-	for i := range mod.Population {
-		start <- mod.Population[i]
+	for _, indiInfo := range mod.population {
+		start <- indiInfo.Individual
 	}
 
 }
@@ -99,6 +118,8 @@ func (mod PipedPoolModel) crossover(in, out chan eaopt.Individual) {
 			// Create offsprings
 			o1, o2 := p1.Clone(mod.Rnd), p2.Clone(mod.Rnd)
 			o1.Crossover(o2, mod.Rnd)
+
+			o1.ID, o2.ID = p1.ID, p2.ID
 
 			if mod.KeepBest {
 				indis := []eaopt.Individual{p1, p2, o1, o2}
@@ -137,15 +158,31 @@ func (mod *PipedPoolModel) evaluate(in, out chan eaopt.Individual) {
 		if !o1.Evaluated {
 			o1.Evaluate()
 
-			// TODO: Calculate average fitness here
+			// Calculate average fitness here
+			mod.fitAvg += o1.Fitness
+			mod.fitAvg /= 2
 
 			if o1.Fitness < mod.BestSolution.Fitness {
-				mod.BestSolution = o1
+				mod.BestSolution = o1.Clone(mod.Rnd)
 
-				mod.Callback(mod)
+				mod.BestCallback(mod)
 			}
+		}
+
+		info := mod.population[o1.ID]
+		info.Generation++
+
+		if info.Generation > mod.Generation {
+			mod.Generation = info.Generation
+
+			mod.GenerationCallback(mod)
 		}
 
 		out <- o1
 	}
+}
+
+// FitAvg returns the average fitness of the population
+func (mod PipedPoolModel) FitAvg() float64 {
+	return mod.fitAvg
 }

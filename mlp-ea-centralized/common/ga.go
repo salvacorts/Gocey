@@ -25,23 +25,31 @@ func TrainMLP(csvdata string) (mlp.MultiLayerNetwork, float64, error) {
 	var patterns, _, mapped = utils.LoadPatternsFromCSV(csvdata)
 	train, test := mv.TrainTestPatternSplit(patterns, 0.8, 1)
 
-	ga := PipedPoolModel{
-		Rnd:          rand.New(rand.NewSource(7)),
-		KeepBest:     true,
-		SortFunction: SortByFitnessAndNeurons,
-		PopSize:      popSize,
-		CrossRate:    crossProb,
-		MutRate:      mutProb,
-	}
+	ga := MakePool()
 
-	ga.Callback = func(ga *PipedPoolModel) {
+	ga.Rnd = rand.New(rand.NewSource(7))
+	ga.KeepBest = true
+	ga.SortFunction = SortByFitnessAndNeurons
+	ga.PopSize = popSize
+	ga.CrossRate = crossProb
+	ga.MutRate = mutProb
+
+	ga.GenerationCallback = func(ga *PipedPoolModel) {
 		Log.WithFields(logrus.Fields{
 			"level":               "info",
-			"Generation":          ga.Generations,
-			"Avg":                 ga.Population.FitAvg(),
+			"Generation":          ga.Generation,
+			"Avg":                 ga.FitAvg(),
 			"Fitness":             ga.BestSolution.Fitness,
 			"HiddenLayer_Neurons": ga.BestSolution.Genome.(*MLP).NeuralLayers[1].Length,
-		}).Infof("Best fitness at generation %d: %f", ga.Generations, ga.BestSolution.Fitness)
+		}).Infof("Best fitness at generation %d: %f", ga.Generation, ga.BestSolution.Fitness)
+	}
+
+	ga.BestCallback = func(ga *PipedPoolModel) {
+		Log.WithFields(logrus.Fields{
+			"level":      "info",
+			"Generation": ga.Generation,
+			"Fitness":    ga.BestSolution.Fitness,
+		}).Infof("NEW BEST SOLUTION with fitness: %f", ga.BestSolution.Fitness)
 	}
 
 	ga.ExtraOperators = []eaopt.ExtraOperator{

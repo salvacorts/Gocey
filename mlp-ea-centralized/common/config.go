@@ -16,8 +16,8 @@ const (
 	// MutateRate states the probability of a neuron to be mutated once the Mutate operator is applied
 	MutateRate float64 = 1
 
-	generations uint = 100
-	popSize     uint = 100
+	generations int = 100
+	popSize     int = 100
 
 	mutProb              float64 = 0.3
 	crossProb            float64 = 0.3

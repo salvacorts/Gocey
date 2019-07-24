@@ -34,7 +34,7 @@ func TrainMLP(csvdata string) (mlp.MultiLayerNetwork, float64, error) {
 		MutRate:      mutProb,
 	}
 
-	ga.Callback = func(ga PipedPoolModel) {
+	ga.Callback = func(ga *PipedPoolModel) {
 		Log.WithFields(logrus.Fields{
 			"level":               "info",
 			"Generation":          ga.Generations,
@@ -70,6 +70,8 @@ func TrainMLP(csvdata string) (mlp.MultiLayerNetwork, float64, error) {
 
 	// Execute GA
 	ga.Minimize()
+
+	select {}
 
 	Log.WithFields(logrus.Fields{
 		"level":    "info",

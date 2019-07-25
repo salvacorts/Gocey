@@ -33,6 +33,7 @@ func TrainMLP(csvdata string) (mlp.MultiLayerNetwork, float64, error) {
 	ga.PopSize = popSize
 	ga.CrossRate = crossProb
 	ga.MutRate = mutProb
+	ga.MaxGeneration = generations
 
 	ga.GenerationCallback = func(ga *PipedPoolModel) {
 		Log.WithFields(logrus.Fields{
@@ -49,7 +50,7 @@ func TrainMLP(csvdata string) (mlp.MultiLayerNetwork, float64, error) {
 			"level":      "info",
 			"Generation": ga.Generation,
 			"Fitness":    ga.BestSolution.Fitness,
-		}).Infof("NEW BEST SOLUTION with fitness: %f", ga.BestSolution.Fitness)
+		}).Infof("New best solution with fitness: %f", ga.BestSolution.Fitness)
 	}
 
 	ga.ExtraOperators = []eaopt.ExtraOperator{
@@ -57,6 +58,10 @@ func TrainMLP(csvdata string) (mlp.MultiLayerNetwork, float64, error) {
 		eaopt.ExtraOperator{Operator: RemoveNeuron, Probability: removeNeuronProb},
 		eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: substituteNeuronProb},
 		eaopt.ExtraOperator{Operator: Train, Probability: trainProb},
+	}
+
+	ga.EarlyStop = func(ga *PipedPoolModel) bool {
+		return ga.BestSolution.Fitness == 0
 	}
 
 	// Configure MLP
@@ -78,8 +83,6 @@ func TrainMLP(csvdata string) (mlp.MultiLayerNetwork, float64, error) {
 
 	// Execute GA
 	ga.Minimize()
-
-	select {}
 
 	Log.WithFields(logrus.Fields{
 		"level":    "info",

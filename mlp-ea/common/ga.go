@@ -44,6 +44,10 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 		}).Infof("Best fitness at generation %d: %f", ga.Generations, ga.HallOfFame[0].Fitness)
 	}
 
+	ga.EarlyStop = func(ga *eaopt.GA) bool {
+		return ga.HallOfFame[0].Fitness == 0.0
+	}
+
 	// Configure MLP
 	Config = MLPConfig{
 		Epochs:      10,

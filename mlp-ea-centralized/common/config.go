@@ -48,7 +48,7 @@ type MLPFactoryConfig struct {
 type MLPConfig struct {
 	Epochs      int
 	Folds       int
-	Classes     *[]string
-	TrainingSet *[]mn.Pattern
+	Classes     []string
+	TrainingSet []mn.Pattern
 	FactoryCfg  MLPFactoryConfig
 }

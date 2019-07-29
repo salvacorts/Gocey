@@ -4,7 +4,7 @@ from fabric import task
 def build_protobuf(c):
     with c.cd("common/mlp/proto"):
         print("[++] Compiling proto files for MLP")
-        c.run("protoc -I.:$GOPATH/src:$GOPATH/src/github.com/gogo/protobuf/protobuf --gogofaster_out=paths=source_relative:.. mlp.proto", replace_env=False)
+        c.run("protoc -I.:$GOPATH/src:$GOPATH/src/github.com/gogo/protobuf/protobuf --gogo_out=plugins=grpc:.. *.proto", replace_env=False)
 
 @task(optional=['test'])
 def build_web_mlp(c, test=False):

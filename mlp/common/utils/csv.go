@@ -3,6 +3,7 @@ package utils
 import (
 	// sys import
 	"encoding/csv"
+	"fmt"
 	"io"
 	"log"
 	"strings"
@@ -55,4 +56,19 @@ func LoadPatternsFromCSV(content string) ([]Pattern, error, []string) {
 
 	// return patterns
 	return patterns, nil, mapped
+}
+
+// PatternsToCSV resturns a CSV string for the patterns from parameter "in"
+func PatternsToCSV(patterns []Pattern) string {
+	var csv string
+
+	for _, p := range patterns {
+		for _, f := range p.Features {
+			csv += fmt.Sprintf("%f,", f)
+		}
+
+		csv += "\n"
+	}
+
+	return csv
 }

@@ -38,9 +38,9 @@ func NewRandMLP(rng *rand.Rand) eaopt.Genome {
 func (nn *MLP) Evaluate() (float64, error) {
 	copy := nn.Clone().(*MLP)
 
-	train, validation := mv.TrainTestPatternSplit(*Config.TrainingSet, 0.8, 1)
+	train, validation := mv.TrainTestPatternSplit(Config.TrainingSet, 0.8, 1)
 
-	mlp.MLPTrain((*mlp.MultiLayerNetwork)(copy), train, *Config.Classes,
+	mlp.MLPTrain((*mlp.MultiLayerNetwork)(copy), train, Config.Classes,
 		Config.Epochs, true)
 
 	predictions := mlp.PredictN((*mlp.MultiLayerNetwork)(copy), validation)
@@ -236,8 +236,8 @@ func Train(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 
 	mlp.MLPTrain(
 		(*mlp.MultiLayerNetwork)(out),
-		*Config.TrainingSet,
-		*Config.Classes, TrainEpochs,
+		Config.TrainingSet,
+		Config.Classes, TrainEpochs,
 		true)
 
 	Log.WithFields(logrus.Fields{

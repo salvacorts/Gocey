@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package mlp;
+
+import "github.com/golang/protobuf/ptypes/empty/empty.proto";
+import "mlp.proto";
+
+message MLPMsg {
+    MultiLayerNetwork mlp = 1;
+    string individualID = 2;
+    bool evaluated = 3;
+    double Fitness = 4;
+    string clientID = 5;
+}
+
+message ProblemDescription {
+    string clientID = 1;
+
+    int64 epochs = 4;
+    string trainDataset = 2;
+    repeated string classes = 3;
+
+}
+
+service DistributedEA {
+    rpc GetProblemDescription(google.protobuf.Empty) returns (ProblemDescription) {}
+
+    rpc BorrowIndividual(google.protobuf.Empty) returns (MLPMsg) {}
+
+    rpc ReturnIndividual(MLPMsg) returns (google.protobuf.Empty) {}
+}

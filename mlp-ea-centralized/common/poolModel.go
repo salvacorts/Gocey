@@ -3,9 +3,15 @@ package common
 import (
 	"math"
 	"math/rand"
+	"net"
+	"reflect"
+	"runtime"
 	"sync"
 
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/mlp"
+
 	"github.com/salvacorts/eaopt"
+	"google.golang.org/grpc"
 )
 
 type indivInfo struct {
@@ -59,11 +65,16 @@ func MakePool() PipedPoolModel {
 	}
 }
 
+// FitAvg returns the average fitness of the population
+func (mod *PipedPoolModel) FitAvg() float64 {
+	return mod.fitAvg
+}
+
 // Init initialized the model by creating a pipeline of channels with the different
 // genetic operators
 func (mod *PipedPoolModel) init() {
-	// Append Evaluate, Cross and Mutate
-	mod.pipeline = append(mod.pipeline, mod.evaluate, mod.crossover, mod.mutate)
+	// Append Cross and Mutate
+	mod.pipeline = append(mod.pipeline, mod.crossover, mod.mutate)
 
 	// Append the rest of extra operators
 	for _, operator := range mod.ExtraOperators {
@@ -92,6 +103,9 @@ func (mod *PipedPoolModel) init() {
 		})
 	}
 
+	// Append Evaluate and Control ops
+	mod.pipeline = append(mod.pipeline, mod.evaluate, mod.generationControl)
+
 	// Create initial population
 	for i := 0; i < mod.PopSize; i++ {
 		indi := eaopt.NewIndividual(NewRandMLP(mod.Rnd), mod.Rnd)
@@ -109,13 +123,19 @@ func (mod *PipedPoolModel) Minimize() {
 	start := make(chan eaopt.Individual, mod.PopSize)
 	previous := start
 
+	Log.Debugf("Start: %v", start)
+
 	for i := 0; i < len(mod.pipeline)-1; i++ {
 		current := make(chan eaopt.Individual, mod.PopSize)
+
+		Log.Debugf("%v -> %s -> %v", previous, getFunctionName(mod.pipeline[i]), current)
 
 		go mod.pipeline[i](previous, current)
 
 		previous = current
 	}
+
+	Log.Debugf("%v -> %s -> %v", previous, getFunctionName(mod.pipeline[len(mod.pipeline)-1]), start)
 
 	// Connect the last pipe to the first one
 	go mod.pipeline[len(mod.pipeline)-1](previous, start)
@@ -195,7 +215,7 @@ func (mod *PipedPoolModel) mutate(in, out chan eaopt.Individual) {
 	}
 }
 
-func (mod *PipedPoolModel) evaluate(in, out chan eaopt.Individual) {
+func (mod *PipedPoolModel) generationControl(in, out chan eaopt.Individual) {
 	defer mod.wg.Done()
 	defer close(out)
 
@@ -208,19 +228,15 @@ func (mod *PipedPoolModel) evaluate(in, out chan eaopt.Individual) {
 				return
 			}
 
-			if !o1.Evaluated {
-				o1.Evaluate()
+			// Calculate average fitness here
+			mod.fitAvg += o1.Fitness
+			mod.fitAvg /= 2
 
-				// Calculate average fitness here
-				mod.fitAvg += o1.Fitness
-				mod.fitAvg /= 2
+			if o1.Fitness < mod.BestSolution.Fitness {
+				mod.BestSolution = o1.Clone(mod.Rnd)
 
-				if o1.Fitness < mod.BestSolution.Fitness {
-					mod.BestSolution = o1.Clone(mod.Rnd)
-
-					if mod.BestCallback != nil {
-						mod.BestCallback(mod)
-					}
+				if mod.BestCallback != nil {
+					mod.BestCallback(mod)
 				}
 			}
 
@@ -253,7 +269,32 @@ func (mod *PipedPoolModel) evaluate(in, out chan eaopt.Individual) {
 	}
 }
 
-// FitAvg returns the average fitness of the population
-func (mod *PipedPoolModel) FitAvg() float64 {
-	return mod.fitAvg
+func (mod *PipedPoolModel) evaluate(in, out chan eaopt.Individual) {
+	defer mod.wg.Done()
+	defer close(out)
+
+	mlpServer := &MLPServer{
+		Input:  in,
+		Output: out,
+		Stop:   mod.stop,
+		Log:    Log,
+	}
+
+	// TODO: Make it use UDP
+	listener, err := net.Listen("tcp", ":3117")
+	if err != nil {
+		Log.Fatalf("Failed to listen: %v", err)
+	}
+
+	// Start listening on server
+	grpcServer := grpc.NewServer()
+	mlp.RegisterDistributedEAServer(grpcServer, mlpServer)
+	grpcServer.Serve(listener)
+
+	// Wait until stop is received
+	<-mod.stop
+}
+
+func getFunctionName(i interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }

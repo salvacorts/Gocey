@@ -68,8 +68,8 @@ func TrainMLP(csvdata string) (mlp.MultiLayerNetwork, float64, error) {
 	Config = MLPConfig{
 		Epochs:      10,
 		Folds:       1,
-		Classes:     &mapped,
-		TrainingSet: &train,
+		Classes:     mapped,
+		TrainingSet: train,
 		FactoryCfg: MLPFactoryConfig{
 			InputLayers:      len(patterns[0].Features),
 			OutputLayers:     len(mapped),

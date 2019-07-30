@@ -28,7 +28,7 @@ func TrainMLP(csvdata string) (mlp.MultiLayerNetwork, float64, error) {
 	ga := MakePool()
 
 	ga.Rnd = rand.New(rand.NewSource(7))
-	ga.KeepBest = true
+	ga.KeepBest = false
 	ga.SortFunction = SortByFitnessAndNeurons
 	ga.PopSize = popSize
 	ga.CrossRate = crossProb

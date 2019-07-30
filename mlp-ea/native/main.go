@@ -16,7 +16,7 @@ func main() {
 	ga.Log.SetOutput(os.Stdout)
 	ga.Log.SetLevel(logrus.InfoLevel)
 
-	filename := "../../datasets/cancer.csv"
+	filename := "../../datasets/glass.csv"
 	fileContent, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("Cannot open %s. Error: %s", filename, err.Error())

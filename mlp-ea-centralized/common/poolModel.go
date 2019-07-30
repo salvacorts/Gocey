@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/mlp"
 
 	"github.com/salvacorts/eaopt"
@@ -169,19 +171,11 @@ func (mod *PipedPoolModel) crossover(in, out chan eaopt.Individual) {
 				o1, o2 := p1.Clone(mod.Rnd), p2.Clone(mod.Rnd)
 				o1.Crossover(o2, mod.Rnd)
 
+				// Keep thre ID of the parents
 				o1.ID, o2.ID = p1.ID, p2.ID
 
-				if mod.KeepBest {
-					indis := []eaopt.Individual{p1, p2, o1, o2}
-
-					mod.SortFunction(indis)
-
-					out <- indis[0]
-					out <- indis[1]
-				} else {
-					out <- o1
-					out <- o2
-				}
+				out <- o1
+				out <- o2
 			} else {
 				out <- p1
 				out <- p2
@@ -241,11 +235,40 @@ func (mod *PipedPoolModel) generationControl(in, out chan eaopt.Individual) {
 				}
 			}
 
+			// TODO: Do this better
 			info := mod.population[o1.ID]
 			info.Generation++
 
 			if info.Generation > mod.Generation+1 {
 				mod.Generation++
+
+				if mod.KeepBest {
+					// Find the worst solution
+					var worstID string
+					worst := math.Inf(-1)
+
+					for key, value := range mod.population {
+						if value.Individual.Fitness > worst {
+							worst = value.Individual.Fitness
+							worstID = key
+						}
+					}
+
+					if Log.Level == logrus.DebugLevel {
+						var keys []string
+						for key := range mod.population {
+							keys = append(keys, key)
+						}
+
+						Log.Debugf("Keys in Population: %v", keys)
+					}
+
+					// Replace the worst solution by the best one so far
+					mod.population[worstID] = &indivInfo{
+						Generation: mod.population[worstID].Generation,
+						Individual: mod.BestSolution,
+					}
+				}
 
 				if mod.GenerationCallback != nil {
 					mod.GenerationCallback(mod)

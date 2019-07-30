@@ -65,7 +65,7 @@ func TestMarshallUnmarshall(t *testing.T) {
 }
 
 func TestTrainMLP(t *testing.T) {
-	filename := "../../../datasets/cancer.csv"
+	filename := "../../../datasets/glass.csv"
 	fileContent, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Errorf("Cannot open %s. Error: %s", filename, err.Error())

@@ -65,7 +65,7 @@ func TestMarshallUnmarshall(t *testing.T) {
 }
 
 func TestTrainMLP(t *testing.T) {
-	filename := "../../../datasets/glass.csv"
+	filename := "../../../datasets/cancer.csv"
 	fileContent, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Errorf("Cannot open %s. Error: %s", filename, err.Error())
@@ -74,7 +74,7 @@ func TestTrainMLP(t *testing.T) {
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.ErrorLevel)
 	ga.Log.SetOutput(os.Stdout)
-	ga.Log.SetLevel(logrus.DebugLevel)
+	ga.Log.SetLevel(logrus.InfoLevel)
 
 	_, score, err := ga.TrainMLP(string(fileContent))
 	if err != nil {

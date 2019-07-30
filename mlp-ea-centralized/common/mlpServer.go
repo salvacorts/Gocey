@@ -22,7 +22,6 @@ type MLPServer struct {
 	Log    *logrus.Logger
 	Input  chan eaopt.Individual
 	Output chan eaopt.Individual
-	Stop   chan bool
 
 	clients int // TODO: Timeout clients
 }

@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 
@@ -35,6 +36,8 @@ func (c *MLPClient) Start() error {
 		c.Log.Fatalf("Cannot get problem description from server. Error: %s", err.Error())
 	}
 
+	fmt.Printf(desc.TrainDataset)
+
 	Config.Epochs = int(desc.Epochs)
 	Config.Classes = desc.Classes
 	Config.TrainingSet, err, _ = utils.LoadPatternsFromCSV(desc.TrainDataset)
@@ -58,7 +61,7 @@ func (c *MLPClient) Start() error {
 			break
 		}
 
-		c.Log.Debugf("Got score: %f", score)
+		c.Log.Infof("Got score: %f", score)
 
 		out := &mlp.MLPMsg{
 			Mlp:          (*mlp.MultiLayerNetwork)(nn),

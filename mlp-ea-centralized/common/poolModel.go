@@ -48,6 +48,7 @@ type PipedPoolModel struct {
 	pipeline   []Pipe
 	stop       chan bool
 	wg         sync.WaitGroup
+	grpcServer *grpc.Server
 
 	// Stats
 	fitAvg float64
@@ -256,6 +257,7 @@ func (mod *PipedPoolModel) generationControl(in, out chan eaopt.Individual) {
 						Log.Debugln("mod.stop was already closed")
 					default:
 						if mod.stop != nil {
+							mod.grpcServer.Stop()
 							close(mod.stop)
 						}
 					}
@@ -276,7 +278,6 @@ func (mod *PipedPoolModel) evaluate(in, out chan eaopt.Individual) {
 	mlpServer := &MLPServer{
 		Input:  in,
 		Output: out,
-		Stop:   mod.stop,
 		Log:    Log,
 	}
 
@@ -287,12 +288,14 @@ func (mod *PipedPoolModel) evaluate(in, out chan eaopt.Individual) {
 	}
 
 	// Start listening on server
-	grpcServer := grpc.NewServer()
-	mlp.RegisterDistributedEAServer(grpcServer, mlpServer)
-	grpcServer.Serve(listener)
+	mod.grpcServer = grpc.NewServer()
+	mlp.RegisterDistributedEAServer(mod.grpcServer, mlpServer)
+	mod.grpcServer.Serve(listener)
 
 	// Wait until stop is received
-	<-mod.stop
+	select {
+	case <-mod.stop:
+	}
 }
 
 func getFunctionName(i interface{}) string {

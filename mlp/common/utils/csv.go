@@ -63,11 +63,11 @@ func PatternsToCSV(patterns []Pattern) string {
 	var csv string
 
 	for _, p := range patterns {
-		for _, f := range p.Features {
-			csv += fmt.Sprintf("%f,", f)
+		for i := 0; i < len(p.Features)-1; i++ {
+			csv += fmt.Sprintf("%f,", p.Features[i])
 		}
 
-		csv += "\n"
+		csv += fmt.Sprintf("%f\n", p.Features[len(p.Features)-1])
 	}
 
 	return csv

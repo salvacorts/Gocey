@@ -1,8 +1,6 @@
 package mlp
 
 import (
-	math "math"
-
 	mn "github.com/salvacorts/go-perceptron-go/model/neural"
 )
 
@@ -118,28 +116,10 @@ func Execute(mlp *MultiLayerNetwork, s *mn.Pattern, tFunc TransferF, options ...
 // return [r:float64] delta error between generated output and expected output
 func BackPropagate(mlp *MultiLayerNetwork, s *mn.Pattern, o []float64, tFunc TransferF, tFuncD TransferF, options ...int) (r float64) {
 
-	var no []float64
-	// execute network with pattern passed over each level to output
-	if len(options) == 1 {
-		no = Execute(mlp, s, tFunc, options[0])
-	} else {
-		no = Execute(mlp, s, tFunc)
-	}
+	// var no []float64
 
 	// init error
 	e := 0.0
-
-	// compute output error and delta in output layer
-	for i := 0; i < int(mlp.NeuralLayers[len(mlp.NeuralLayers)-1].Length); i++ {
-
-		// compute error in output: output for given pattern - output computed by network
-		e = o[i] - no[i]
-
-		// compute delta for each neuron in output layer as:
-		// error in output * derivative of transfer function of network output
-		mlp.NeuralLayers[len(mlp.NeuralLayers)-1].NeuronUnits[i].Delta = e * tFuncD(no[i])
-
-	}
 
 	// backpropagate error to previous layers
 	// for each layers starting from the last hidden (len(mlp.NeuralLayers)-2)
@@ -196,23 +176,22 @@ func BackPropagate(mlp *MultiLayerNetwork, s *mn.Pattern, o []float64, tFunc Tra
 
 	}
 
-	// compute global errors as sum of abs difference between output execution for each neuron in output layer
-	// and desired value in each neuron in output layer
-	for i := 0; i < len(o); i++ {
+	// // compute global errors as sum of abs difference between output execution for each neuron in output layer
+	// // and desired value in each neuron in output layer
+	// for i := 0; i < len(o); i++ {
 
-		r += math.Abs(no[i] - o[i])
+	// 	r += math.Abs(no[i] - o[i])
 
-	}
+	// }
 
-	// average error
-	r = r / float64(len(o))
+	// // average error
+	// r = r / float64(len(o))
 
 	return
-
 }
 
-// MLPTrain train a mlp MultiLayerNetwork with BackPropagation algorithm for assisted learning.
-func MLPTrain(mlp *MultiLayerNetwork, patterns []mn.Pattern, mapped []string, epochs int, bp ...bool) {
+// Train a mlp MultiLayerNetwork with BackPropagation algorithm for assisted learning.
+func Train(mlp *MultiLayerNetwork, patterns []mn.Pattern, mapped []string, epochs int, bp ...bool) {
 
 	epoch := 0
 	output := make([]float64, len(mapped))
@@ -239,8 +218,26 @@ func MLPTrain(mlp *MultiLayerNetwork, patterns []mn.Pattern, mapped []string, ep
 			for io := range output {
 				output[io] = 0.0
 			}
+
 			// setup desired output for specific class of pattern focused
 			output[int(pattern.SingleExpectation)] = 1.0
+
+			// Execute network with pattern passed over each level to output
+			no := Execute(mlp, &pattern, tFunc)
+
+			// init error
+			e := 0.0
+
+			// compute output error and delta in output layer
+			for i := 0; i < int(mlp.NeuralLayers[len(mlp.NeuralLayers)-1].Length); i++ {
+
+				// compute error in output: output for given pattern - output computed by network
+				e = output[i] - no[i]
+
+				// compute delta for each neuron in output layer as:
+				// error in output * derivative of transfer function of network output
+				mlp.NeuralLayers[len(mlp.NeuralLayers)-1].NeuronUnits[i].Delta = e * tFuncD(no[i])
+			}
 
 			// back propagation
 			if len(bp) > 0 && bp[0] {

@@ -40,8 +40,8 @@ func (nn *MLP) Evaluate() (float64, error) {
 
 	train, validation := mv.TrainTestPatternSplit(Config.TrainingSet, 0.8, 1)
 
-	mlp.MLPTrain((*mlp.MultiLayerNetwork)(copy), train, Config.Classes,
-		Config.Epochs, true)
+	mlp.Train((*mlp.MultiLayerNetwork)(copy), train, Config.Classes,
+		Config.Epochs)
 
 	predictions := mlp.PredictN((*mlp.MultiLayerNetwork)(copy), validation)
 	predictionsR := utils.RoundPredictions(predictions)
@@ -234,7 +234,7 @@ func SubstituteNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 func Train(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
 	out := in.(*MLP)
 
-	mlp.MLPTrain(
+	mlp.Train(
 		(*mlp.MultiLayerNetwork)(out),
 		Config.TrainingSet,
 		Config.Classes, TrainEpochs,

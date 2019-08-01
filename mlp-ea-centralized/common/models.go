@@ -8,7 +8,7 @@ import (
 )
 
 // SortByFitnessAndNeurons First sorts by Fitness and then by number of neurons
-func SortByFitnessAndNeurons(indis eaopt.Individuals) {
+func SortByFitnessAndNeurons(indis []eaopt.Individual) {
 
 	// Round with precission
 	round := func(i float64) float64 {
@@ -37,71 +37,71 @@ func SortByFitnessAndNeurons(indis eaopt.Individuals) {
 	})
 }
 
-func getSteadyStateModel() eaopt.Model {
-	return eaopt.ModSteadyState{
-		Selector:  eaopt.SelElitism{},
-		KeepBest:  true,
-		MutRate:   mutProb,
-		CrossRate: crossProb,
+// func getSteadyStateModel() eaopt.Model {
+// 	return eaopt.ModSteadyState{
+// 		Selector:  eaopt.SelElitism{},
+// 		KeepBest:  true,
+// 		MutRate:   mutProb,
+// 		CrossRate: crossProb,
 
-		ExtraOperators: []eaopt.ExtraOperator{
-			eaopt.ExtraOperator{Operator: AddNeuron, Probability: addNeuronProb},
-			eaopt.ExtraOperator{Operator: RemoveNeuron, Probability: removeNeuronProb},
-			eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: substituteNeuronProb},
-			eaopt.ExtraOperator{Operator: Train, Probability: trainProb},
-		},
+// 		ExtraOperators: []eaopt.ExtraOperator{
+// 			eaopt.ExtraOperator{Operator: AddNeuron, Probability: addNeuronProb},
+// 			eaopt.ExtraOperator{Operator: RemoveNeuron, Probability: removeNeuronProb},
+// 			eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: substituteNeuronProb},
+// 			eaopt.ExtraOperator{Operator: Train, Probability: trainProb},
+// 		},
 
-		SortFunc: SortByFitnessAndNeurons,
-	}
-}
+// 		SortFunc: SortByFitnessAndNeurons,
+// 	}
+// }
 
-func getGenerationalModelElistism() eaopt.Model {
-	return eaopt.ModGenerational{
-		//Selector:  eaopt.SelElitism{SortFunc: SortByFitnessAndNeurons},
-		MutRate:   mutProb,
-		CrossRate: crossProb,
+// func getGenerationalModelElistism() eaopt.Model {
+// 	return eaopt.ModGenerational{
+// 		//Selector:  eaopt.SelElitism{SortFunc: SortByFitnessAndNeurons},
+// 		MutRate:   mutProb,
+// 		CrossRate: crossProb,
 
-		ExtraOperators: []eaopt.ExtraOperator{
-			eaopt.ExtraOperator{Operator: AddNeuron, Probability: addNeuronProb},
-			eaopt.ExtraOperator{Operator: RemoveNeuron, Probability: removeNeuronProb},
-			eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: substituteNeuronProb},
-			eaopt.ExtraOperator{Operator: Train, Probability: trainProb},
-		},
+// 		ExtraOperators: []eaopt.ExtraOperator{
+// 			eaopt.ExtraOperator{Operator: AddNeuron, Probability: addNeuronProb},
+// 			eaopt.ExtraOperator{Operator: RemoveNeuron, Probability: removeNeuronProb},
+// 			eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: substituteNeuronProb},
+// 			eaopt.ExtraOperator{Operator: Train, Probability: trainProb},
+// 		},
 
-		SortFunc: SortByFitnessAndNeurons,
-	}
-}
+// 		SortFunc: SortByFitnessAndNeurons,
+// 	}
+// }
 
-func getGenerationalModelTournament(n uint) eaopt.Model {
-	return eaopt.ModGenerational{
-		Selector:  eaopt.SelTournament{NContestants: n},
-		MutRate:   mutProb,
-		CrossRate: crossProb,
+// func getGenerationalModelTournament(n uint) eaopt.Model {
+// 	return eaopt.ModGenerational{
+// 		Selector:  eaopt.SelTournament{NContestants: n},
+// 		MutRate:   mutProb,
+// 		CrossRate: crossProb,
 
-		ExtraOperators: []eaopt.ExtraOperator{
-			eaopt.ExtraOperator{Operator: AddNeuron, Probability: addNeuronProb},
-			eaopt.ExtraOperator{Operator: RemoveNeuron, Probability: removeNeuronProb},
-			eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: substituteNeuronProb},
-			eaopt.ExtraOperator{Operator: Train, Probability: trainProb},
-		},
+// 		ExtraOperators: []eaopt.ExtraOperator{
+// 			eaopt.ExtraOperator{Operator: AddNeuron, Probability: addNeuronProb},
+// 			eaopt.ExtraOperator{Operator: RemoveNeuron, Probability: removeNeuronProb},
+// 			eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: substituteNeuronProb},
+// 			eaopt.ExtraOperator{Operator: Train, Probability: trainProb},
+// 		},
 
-		SortFunc: SortByFitnessAndNeurons,
-	}
-}
+// 		SortFunc: SortByFitnessAndNeurons,
+// 	}
+// }
 
-func getGenerationalModelRoulette() eaopt.Model {
-	return eaopt.ModGenerational{
-		Selector:  eaopt.SelRoulette{},
-		MutRate:   mutProb,
-		CrossRate: crossProb,
+// func getGenerationalModelRoulette() eaopt.Model {
+// 	return eaopt.ModGenerational{
+// 		Selector:  eaopt.SelRoulette{},
+// 		MutRate:   mutProb,
+// 		CrossRate: crossProb,
 
-		ExtraOperators: []eaopt.ExtraOperator{
-			eaopt.ExtraOperator{Operator: AddNeuron, Probability: addNeuronProb},
-			eaopt.ExtraOperator{Operator: RemoveNeuron, Probability: removeNeuronProb},
-			eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: substituteNeuronProb},
-			eaopt.ExtraOperator{Operator: Train, Probability: trainProb},
-		},
+// 		ExtraOperators: []eaopt.ExtraOperator{
+// 			eaopt.ExtraOperator{Operator: AddNeuron, Probability: addNeuronProb},
+// 			eaopt.ExtraOperator{Operator: RemoveNeuron, Probability: removeNeuronProb},
+// 			eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: substituteNeuronProb},
+// 			eaopt.ExtraOperator{Operator: Train, Probability: trainProb},
+// 		},
 
-		SortFunc: SortByFitnessAndNeurons,
-	}
-}
+// 		SortFunc: SortByFitnessAndNeurons,
+// 	}
+// }

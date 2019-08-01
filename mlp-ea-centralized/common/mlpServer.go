@@ -7,10 +7,9 @@ import (
 	"math"
 
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
+	"github.com/salvacorts/eaopt"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/salvacorts/eaopt"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
@@ -88,7 +87,7 @@ func (s *MLPServer) ReturnIndividual(ctx context.Context, msg *mlp.MLPMsg) (*emp
 		ID:        msg.IndividualID,
 	}
 
-	opLogger.Debugln("Received Evaluated Individual -> output chan")
+	opLogger.Debugln("Received Evaluated eaopt.Individual -> output chan")
 
 	return &empty.Empty{}, nil
 }

@@ -25,45 +25,6 @@ func TrainMLP(csvdata string) (mlp.MultiLayerNetwork, float64, error) {
 	var patterns, _, mapped = utils.LoadPatternsFromCSV(csvdata)
 	train, test := mv.TrainTestPatternSplit(patterns, 0.8, 1)
 
-	ga := MakePool()
-
-	ga.Rnd = rand.New(rand.NewSource(7))
-	ga.KeepBest = false
-	ga.SortFunction = SortByFitnessAndNeurons
-	ga.PopSize = popSize
-	ga.CrossRate = crossProb
-	ga.MutRate = mutProb
-	ga.MaxGeneration = generations
-
-	ga.GenerationCallback = func(ga *PipedPoolModel) {
-		Log.WithFields(logrus.Fields{
-			"level":               "info",
-			"Generation":          ga.Generation,
-			"Avg":                 ga.FitAvg(),
-			"Fitness":             ga.BestSolution.Fitness,
-			"HiddenLayer_Neurons": ga.BestSolution.Genome.(*MLP).NeuralLayers[1].Length,
-		}).Infof("Best fitness at generation %d: %f", ga.Generation, ga.BestSolution.Fitness)
-	}
-
-	ga.BestCallback = func(ga *PipedPoolModel) {
-		Log.WithFields(logrus.Fields{
-			"level":      "info",
-			"Generation": ga.Generation,
-			"Fitness":    ga.BestSolution.Fitness,
-		}).Infof("New best solution with fitness: %f", ga.BestSolution.Fitness)
-	}
-
-	ga.ExtraOperators = []eaopt.ExtraOperator{
-		eaopt.ExtraOperator{Operator: AddNeuron, Probability: addNeuronProb},
-		eaopt.ExtraOperator{Operator: RemoveNeuron, Probability: removeNeuronProb},
-		eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: substituteNeuronProb},
-		eaopt.ExtraOperator{Operator: Train, Probability: trainProb},
-	}
-
-	ga.EarlyStop = func(ga *PipedPoolModel) bool {
-		return ga.BestSolution.Fitness == 0
-	}
-
 	// Configure MLP
 	Config = MLPConfig{
 		Epochs:      10,
@@ -79,6 +40,46 @@ func TrainMLP(csvdata string) (mlp.MultiLayerNetwork, float64, error) {
 			MaxLR:            0.3,
 			MinLR:            0.01,
 		},
+	}
+
+	ga := MakePool(popSize, rand.New(rand.NewSource(7)))
+
+	// ga.Rnd = rand.New(rand.NewSource(7))
+	ga.KeepBest = false
+	ga.SortFunction = SortByFitnessAndNeurons
+	// ga.PopSize = popSize
+	ga.CrossRate = crossProb
+	ga.MutRate = mutProb
+	ga.MaxEvaluations = 1000000
+
+	// ga.GenerationCallback = func(ga *PipedPoolModel) {
+	// 	Log.WithFields(logrus.Fields{
+	// 		"level":               "info",
+	// 		"Generation":          ga.Generation,
+	// 		"Avg":                 ga.FitAvg(),
+	// 		"Fitness":             ga.BestSolution.Fitness,
+	// 		"HiddenLayer_Neurons": ga.BestSolution.Genome.(*MLP).NeuralLayers[1].Length,
+	// 	}).Infof("Best fitness at generation %d: %f", ga.Generation, ga.BestSolution.Fitness)
+	// }
+
+	ga.BestCallback = func(ga *PipedPoolModel) {
+		Log.WithFields(logrus.Fields{
+			"level":       "info",
+			"Evaluations": ga.evaluations,
+			"Fitness":     ga.BestSolution.Fitness,
+			"ID":          ga.BestSolution.ID,
+		}).Infof("New best solution with fitness: %f", ga.BestSolution.Fitness)
+	}
+
+	ga.ExtraOperators = []eaopt.ExtraOperator{
+		eaopt.ExtraOperator{Operator: AddNeuron, Probability: addNeuronProb},
+		eaopt.ExtraOperator{Operator: RemoveNeuron, Probability: removeNeuronProb},
+		eaopt.ExtraOperator{Operator: SubstituteNeuron, Probability: substituteNeuronProb},
+		eaopt.ExtraOperator{Operator: Train, Probability: trainProb},
+	}
+
+	ga.EarlyStop = func(ga *PipedPoolModel) bool {
+		return ga.BestSolution.Fitness == 0
 	}
 
 	// Execute GA

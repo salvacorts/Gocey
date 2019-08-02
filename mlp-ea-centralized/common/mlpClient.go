@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 
@@ -39,6 +40,7 @@ func (c *MLPClient) Start() error {
 	fmt.Printf(desc.TrainDataset)
 
 	Config.Epochs = int(desc.Epochs)
+	Config.Folds = int(desc.Folds)
 	Config.Classes = desc.Classes
 	Config.TrainingSet, err, _ = utils.LoadPatternsFromCSV(desc.TrainDataset)
 	if err != nil {
@@ -46,6 +48,9 @@ func (c *MLPClient) Start() error {
 	}
 
 	c.Log.Debugf("Patterns length: %d", len(Config.TrainingSet))
+
+	localEvaluations := 0
+	start := time.Now()
 
 	for {
 		msg, err := client.BorrowIndividual(context.Background(), &empty.Empty{})
@@ -75,6 +80,12 @@ func (c *MLPClient) Start() error {
 		if err != nil {
 			c.Log.Fatalf("Cannot return back individual to server. Error: %s", err.Error())
 			break
+		}
+
+		localEvaluations++
+
+		if localEvaluations%1000 == 0 {
+			c.Log.Infof("Throughput: %d evaluations / second", localEvaluations/int(time.Since(start).Seconds()))
 		}
 	}
 

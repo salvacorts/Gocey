@@ -16,9 +16,10 @@ message MLPMsg {
 message ProblemDescription {
     string clientID = 1;
 
-    int64 epochs = 4;
-    string trainDataset = 2;
-    repeated string classes = 3;
+    int64 epochs = 2;
+    int64 folds = 3;
+    string trainDataset = 4;
+    repeated string classes = 5;
 
 }
 

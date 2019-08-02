@@ -27,8 +27,8 @@ func TrainMLP(csvdata string) (mlp.MultiLayerNetwork, float64, error) {
 
 	// Configure MLP
 	Config = MLPConfig{
-		Epochs:      10,
-		Folds:       1,
+		Epochs:      50,
+		Folds:       5,
 		Classes:     mapped,
 		TrainingSet: train,
 		FactoryCfg: MLPFactoryConfig{

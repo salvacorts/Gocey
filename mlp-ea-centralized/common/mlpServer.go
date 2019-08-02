@@ -30,6 +30,7 @@ func (s *MLPServer) GetProblemDescription(ctx context.Context, in *empty.Empty) 
 	description := &mlp.ProblemDescription{
 		ClientID:     fmt.Sprintf("client%d", s.clients),
 		Epochs:       int64(Config.Epochs),
+		Folds:        int64(Config.Folds),
 		TrainDataset: utils.PatternsToCSV(Config.TrainingSet),
 		Classes:      Config.Classes,
 	}

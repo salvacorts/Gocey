@@ -15,7 +15,8 @@ func TestClient(t *testing.T) {
 		Log:        logrus.New(),
 	}
 
-	client.Log.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.ErrorLevel)
+	client.Log.SetLevel(logrus.InfoLevel)
 
 	err := client.Start()
 	if err != nil {

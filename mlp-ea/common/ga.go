@@ -33,7 +33,7 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 	ga.NGenerations = generations
 	ga.NPops = 1
 	ga.PopSize = popSize
-	ga.Model = getGenerationalModelRoulette()
+	ga.Model = getGenerationalModelTournament(4)
 	ga.Callback = func(ga *eaopt.GA) {
 		Log.WithFields(logrus.Fields{
 			"level":               "info",

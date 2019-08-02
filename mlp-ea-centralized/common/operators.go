@@ -6,7 +6,6 @@ import (
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/mlp"
 	utils "github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 	"github.com/salvacorts/eaopt"
-	mv "github.com/salvacorts/go-perceptron-go/validation"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,16 +37,18 @@ func NewRandMLP(rng *rand.Rand) eaopt.Genome {
 func (nn *MLP) Evaluate() (float64, error) {
 	copy := nn.Clone().(*MLP)
 
-	train, validation := mv.TrainTestPatternSplit(Config.TrainingSet, 0.8, 1)
+	//train, validation := mv.TrainTestPatternSplit(Config.TrainingSet, 0.8, 1)
 
-	mlp.Train((*mlp.MultiLayerNetwork)(copy), train, Config.Classes,
-		Config.Epochs)
+	//mlp.Train((*mlp.MultiLayerNetwork)(copy), train, Config.Classes, Config.Epochs)
 
-	predictions := mlp.PredictN((*mlp.MultiLayerNetwork)(copy), validation)
-	predictionsR := utils.RoundPredictions(predictions)
-	_, acc := utils.AccuracyN(predictionsR, validation)
+	_, mean := mlp.KFoldValidation(
+		(*mlp.MultiLayerNetwork)(copy), Config.TrainingSet, Config.Epochs, Config.Folds, 1, Config.Classes)
 
-	return 100 - acc, nil
+	// predictions := mlp.PredictN((*mlp.MultiLayerNetwork)(copy), validation)
+	// predictionsR := utils.RoundPredictions(predictions)
+	// _, acc := utils.AccuracyN(predictionsR, validation)
+
+	return 100 - mean, nil
 }
 
 // Mutate modifies the weights of certain neurons, at random, depending on the application rate.

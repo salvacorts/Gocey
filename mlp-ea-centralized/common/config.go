@@ -24,7 +24,7 @@ const (
 	addNeuronProb        float64 = 0.3
 	removeNeuronProb     float64 = 0.15
 	substituteNeuronProb float64 = 0.15
-	trainProb            float64 = 0.1
+	trainProb            float64 = 0.3
 )
 
 // TransferFunction stands for a transfer function

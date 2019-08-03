@@ -36,20 +36,19 @@ func removeIndividual(in []eaopt.Individual, i int) []eaopt.Individual {
 
 // Pipe represents a function that applies an operator to a Genome that
 // comes from the first channel and goes through the second channel
-type Pipe = func(in, out chan eaopt.Individual)
+//type Pipe = func(in, out chan eaopt.Individual)
 
-// PipedPoolModel is a evolutionary algorithm model that uses channels to apply
-// genetic operators over a population
-type PipedPoolModel struct {
+// PoolModel is a pool-based evolutionary algorithm
+type PoolModel struct {
 	Rnd            *rand.Rand
 	KeepBest       bool
 	SortFunction   func([]eaopt.Individual)
 	ExtraOperators []eaopt.ExtraOperator
-	EarlyStop      func(*PipedPoolModel) bool
+	EarlyStop      func(*PoolModel) bool
 
 	// Callbacks
-	BestCallback       func(*PipedPoolModel)
-	GenerationCallback func(*PipedPoolModel)
+	BestCallback       func(*PoolModel)
+	GenerationCallback func(*PoolModel)
 
 	CrossRate float64
 	MutRate   float64
@@ -57,16 +56,10 @@ type PipedPoolModel struct {
 	PopSize        int
 	MaxEvaluations int
 	BestSolution   eaopt.Individual
-	WorstSolution  eaopt.Individual
 
-	//population    sync.Map
-	population    map[string]eaopt.Individual
-	currentPopLen int
-	pipeline      []Pipe
+	population *Population
 
 	popSemaphore semaphore
-	//popCountMutex   *sync.Mutex
-	populationMutex *sync.Mutex
 
 	evaluations       int
 	wg                sync.WaitGroup
@@ -81,14 +74,12 @@ type PipedPoolModel struct {
 }
 
 // MakePool Creates a new pool with default configuration
-func MakePool(popSize int, rnd *rand.Rand) *PipedPoolModel {
-	pool := &PipedPoolModel{
-		Rnd:          rnd,
-		PopSize:      popSize,
-		population:   make(map[string]eaopt.Individual),
-		popSemaphore: make(semaphore, popSize),
-		//popCountMutex:     &sync.Mutex{},
-		populationMutex:   &sync.Mutex{},
+func MakePool(popSize int, rnd *rand.Rand) *PoolModel {
+	pool := &PoolModel{
+		Rnd:               rnd,
+		PopSize:           popSize,
+		population:        MakePopulation(),
+		popSemaphore:      make(semaphore, popSize),
 		evaluations:       0,
 		stop:              make(chan bool),
 		evaluationChannel: make(chan eaopt.Individual, popSize),
@@ -96,56 +87,42 @@ func MakePool(popSize int, rnd *rand.Rand) *PipedPoolModel {
 		BestSolution: eaopt.Individual{
 			Fitness: math.Inf(1),
 		},
-		WorstSolution: eaopt.Individual{
-			Fitness: math.Inf(-1),
-		},
 	}
 
 	for i := 0; i < pool.PopSize; i++ {
 		indi := eaopt.NewIndividual(NewRandMLP(pool.Rnd), pool.Rnd)
-		//pool.population.Store(indi.ID, indi)
-		pool.population[indi.ID] = indi
+		pool.population.Add(indi)
 	}
-
-	// pool.popCountMutex.Lock()
-	// pool.currentPopLen = pool.PopSize
-	// pool.popCountMutex.Unlock()
 
 	return pool
 }
 
-// FitAvg returns the average fitness of the population
-func (mod *PipedPoolModel) FitAvg() float64 {
-	return mod.fitAvg
-}
-
 // Minimize runs the algorithm by connecting the pipes
-func (mod *PipedPoolModel) Minimize() {
-	mod.wg.Add(2)
-	var offsprings []eaopt.Individual
-
-	// fmt.Printf("\n\nPopulation: ")
-	// for i := range mod.population {
-	// 	fmt.Printf("%s, ", mod.population[i].ID)
-	// }
-	// fmt.Printf("\n")
+func (mod *PoolModel) Minimize() {
+	// Wait for goroutins to end at the end of the function
+	mod.wg.Add(3)
+	defer mod.wg.Wait()
 
 	go mod.handleEvaluate()
 	go mod.handleEvaluated()
 
-	for k := range mod.population {
-		mod.evaluationChannel <- mod.population[k]
-	}
+	// Append all individuals in the population to the evaluation channel
+	mod.population.Fold(func(indiv eaopt.Individual) bool {
+		mod.evaluationChannel <- indiv
+
+		return true
+	})
 
 	// Wait until all individuals have been evaluated
 	mod.popSemaphore.Acquire(mod.PopSize)
-	mod.shrinkChan = make(chan bool)
 	go mod.populationGrowControl()
 	mod.popSemaphore.Release(mod.PopSize)
 
 	for mod.evaluations < mod.MaxEvaluations {
+		var offsprings []eaopt.Individual
+
 		// take here randomly from population
-		offsprings = mod.selection(4)
+		offsprings = mod.selection(4, 4)
 		offsprings = mod.crossover(offsprings)
 		offsprings = mod.mutate(offsprings)
 
@@ -162,85 +139,63 @@ func (mod *PipedPoolModel) Minimize() {
 		}
 
 		// Append non evaluated offspings to the channel and
-		// evaluated one again to the population
+		// Removing them from the population
 		for i := range offsprings {
 			if !offsprings[i].Evaluated {
-				mod.removeIndividual(offsprings[i])
+				mod.population.Remove(offsprings[i])
 				mod.evaluationChannel <- offsprings[i]
 			} else {
-				//mod.population.Store(offsprings[i].ID, offsprings[i])
-				//mod.addIndividual(offsprings[i])
 				mod.popSemaphore.Release(1)
 			}
 		}
 	}
-
-	mod.wg.Wait()
 }
 
 // Binary torunament
-// TODO: use semaphore here
-func (mod *PipedPoolModel) selection(n int) []eaopt.Individual {
-	offsprings := make([]eaopt.Individual, n)
+func (mod *PoolModel) selection(nOffstrings, nCandidates int) []eaopt.Individual {
+	offsprings := make([]eaopt.Individual, nOffstrings)
 
-	mod.popSemaphore.Acquire(n)
-	// if len(mod.population) < n {
-	// 	Log.Fatal("Not enought eaopt.Individuals on the population to select")
-	// }
+	// At least nOffsprings shold be available in the population
+	// tu run this operator
+	mod.popSemaphore.Acquire(nOffstrings)
 
 	for i := range offsprings {
-		rnd1 := mod.getRandOnMap()
-		rnd2 := mod.getRandOnMap()
+		alreadySelected := make(map[string]int) // 0 means not selected
+		candidates := make([]eaopt.Individual, nCandidates)
 
-		// Make them differrent.
-		for rnd1.ID == rnd2.ID {
-			rnd2 = mod.getRandOnMap()
+		// Search n different candidates
+		for j := range candidates {
+			//r := mod.getRandOnMap()
+			r, err := mod.population.RandIndividual(mod.Rnd)
+			if err != nil {
+				Log.Fatalf("Error on RandIndividual. %s\n", err.Error())
+			}
+
+			for alreadySelected[r.ID] == 1 {
+				//r = mod.getRandOnMap()
+				r, err = mod.population.RandIndividual(mod.Rnd)
+				if err != nil {
+					Log.Fatalf("Error on RandIndividual. %s\n", err.Error())
+				}
+			}
+
+			alreadySelected[r.ID] = 1
+			candidates[j] = r
 		}
 
-		if rnd1.Fitness < rnd2.Fitness {
-			offsprings[i] = rnd1.Clone(mod.Rnd)
-			offsprings[i].ID = rnd1.ID // Maintain ID from clone to be able to replace it if not deleted
-		} else {
-			offsprings[i] = rnd2.Clone(mod.Rnd)
-			offsprings[i].ID = rnd2.ID
-		}
+		SortByFitnessAndNeurons(candidates)
+
+		offsprings[i] = candidates[0].Clone(mod.Rnd)
+		offsprings[i].ID = candidates[0].ID
 	}
 
 	return offsprings
 }
 
 // TODO: Get rid of odd arrays here
-func (mod *PipedPoolModel) crossover(in []eaopt.Individual) []eaopt.Individual {
-	//new := make([]eaopt.Individual, len(in))
-
-	// Copy all the offsprings
-	// for i := range new {
-	// 	new[i] = in[i]
-	// }
-
-	// Sort clones
-	// SortByFitnessAndNeurons(new)
-
-	// With the offspring first half, replace the second half
-	// for i := 0; i < len(new)/2; i += 2 {
-	// 	o1, o2 := new[i].Clone(mod.Rnd), new[i+1].Clone(mod.Rnd)
-	// 	o1.Genome.Crossover(o2.Genome, mod.Rnd)
-	// 	o1.Evaluated = false
-	// 	o2.Evaluated = false
-
-	// 	new[len(new)-1-i] = o1
-	// 	new[len(new)-1-(i+1)] = o2
-	// }
-
+func (mod *PoolModel) crossover(in []eaopt.Individual) []eaopt.Individual {
 	for i := 0; i < len(in)-1; i += 2 {
 		if mod.Rnd.Float64() < mod.CrossRate {
-			// Delete the modified individuals from the population
-			// since they are no longer evaluated
-			// mod.removeIndividual(in[i])
-			// mod.removeIndividual(in[i+1])
-			// delete(mod.population, in[i].ID)
-			// delete(mod.population, in[i+1].ID)
-
 			o1, o2 := in[i].Clone(mod.Rnd), in[i+1].Clone(mod.Rnd)
 
 			o1.Genome.Crossover(o2.Genome, mod.Rnd)
@@ -256,12 +211,9 @@ func (mod *PipedPoolModel) crossover(in []eaopt.Individual) []eaopt.Individual {
 	return in
 }
 
-func (mod *PipedPoolModel) mutate(in []eaopt.Individual) []eaopt.Individual {
+func (mod *PoolModel) mutate(in []eaopt.Individual) []eaopt.Individual {
 	for i := range in {
 		if mod.Rnd.Float64() < mod.MutRate {
-			// mod.removeIndividual(in[i])
-			//  []eaopt.Individual(mod.population, in[i].ID)
-
 			in[i].Evaluated = false
 			in[i].Genome.Mutate(mod.Rnd)
 		}
@@ -270,7 +222,7 @@ func (mod *PipedPoolModel) mutate(in []eaopt.Individual) []eaopt.Individual {
 	return in
 }
 
-func (mod *PipedPoolModel) handleEvaluated() {
+func (mod *PoolModel) handleEvaluated() {
 	defer mod.wg.Done()
 
 	for {
@@ -287,45 +239,24 @@ func (mod *PipedPoolModel) handleEvaluated() {
 				mod.BestSolution = o1.Clone(mod.Rnd)
 				mod.BestSolution.ID = o1.ID
 
-				mod.populationMutex.Lock()
 				if mod.BestCallback != nil {
 					mod.BestCallback(mod)
 				}
-
-				fmt.Printf("\n\nPopulation [%d]: ", len(mod.population))
-				for i := range mod.population {
-					fmt.Printf("%s, ", mod.population[i].ID)
-				}
-				fmt.Printf("\n")
-				mod.populationMutex.Unlock()
 			}
 
-			// mod.population.Store(o1.ID, o1)
-			// mod.popCountMutex.Lock()
-			// mod.currentPopLen++
-			// mod.popCountMutex.Unlock()
-
-			mod.addIndividual(o1)
+			mod.population.Add(o1)
 			mod.popSemaphore.Release(1)
 			mod.evaluations++
 
-			// Garbage collect worst individuals from the population
-			// if mod.evaluations%25 == 0 {
-			// 	if mod.shrinkChan != nil {
-			// 		mod.shrinkChan <- true
-			// 	}
-			// }
-
-			if mod.evaluations%250 == 0 {
+			if mod.evaluations%100 == 0 {
 				fmt.Printf("Best Fitness: %f\n", mod.BestSolution.Fitness)
 				fmt.Printf("Avg Fitness: %f\n", mod.GetAverageFitness())
-				fmt.Printf("[%d / %d] Population [%d]: ", mod.evaluations, mod.MaxEvaluations, len(mod.population))
-				mod.populationMutex.Lock()
-				for i := range mod.population {
-					fmt.Printf("%s, ", mod.population[i].ID)
-				}
+				fmt.Printf("[%d / %d] Population [%d]: ", mod.evaluations, mod.MaxEvaluations, mod.population.Length())
+				mod.population.Fold(func(i eaopt.Individual) bool {
+					fmt.Printf("%.2f, ", i.Fitness)
+					return true
+				})
 				fmt.Printf("\n\n")
-				mod.populationMutex.Unlock()
 			}
 
 			if mod.evaluations >= mod.MaxEvaluations || mod.EarlyStop(mod) {
@@ -346,7 +277,7 @@ func (mod *PipedPoolModel) handleEvaluated() {
 	}
 }
 
-func (mod *PipedPoolModel) handleEvaluate() {
+func (mod *PoolModel) handleEvaluate() {
 	defer mod.wg.Done()
 
 	mlpServer := &MLPServer{
@@ -375,130 +306,49 @@ func getFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }
 
-func (mod *PipedPoolModel) removeIndividual(indiv eaopt.Individual) {
-	mod.populationMutex.Lock()
-	defer mod.populationMutex.Unlock()
-
-	delete(mod.population, indiv.ID)
-}
-
-func (mod *PipedPoolModel) addIndividual(indiv eaopt.Individual) {
-	mod.populationMutex.Lock()
-	defer mod.populationMutex.Unlock()
-
-	mod.population[indiv.ID] = indiv
-}
-
-func (mod *PipedPoolModel) getRandOnMap() (out eaopt.Individual) {
-	mod.populationMutex.Lock()
-	defer mod.populationMutex.Unlock()
-
-	// mod.popCountMutex.Lock()
-	// if mod.currentPopLen == 0 {
-	// 	Log.Fatal("Empty population")
-	// }
-	// // rnd := mod.Rnd.Intn(mod.currentPopLen)
-	// // idx := 0
-	// mod.popCountMutex.Unlock()
-
-	// // Range on the map until idx is reached. false makes the iteration stop
-	// f := func(key, value interface{}) bool {
-	// 	if idx == rnd {
-	// 		out = value.(eaopt.Individual)
-	// 		return false
-	// 	}
-
-	// 	idx++
-	// 	return true
-	// }
-
-	// mod.population.Range(f)
-
-	// if out.ID == "" {
-	// 	mod.printPopulation()
-	// 	fmt.Printf("Pop Len: %d", mod.currentPopLen)
-	// 	Log.Fatalf("Could not get a random indiv from the population\n")
-	// }
-
-	rnd := mod.Rnd.Intn(len(mod.population))
-	idx := 0
-
-	for _, indiv := range mod.population {
-		if idx == rnd {
-			out = indiv
-			break
-		}
-
-		idx++
-	}
-
-	return
-}
-
-func (mod *PipedPoolModel) printPopulation() {
-	// len := 0
-
-	// // Range on the map until idx is reached. false makes the iteration stop
-	// f := func(key, value interface{}) bool {
-	// 	fmt.Printf("%s, ", value.(eaopt.Individual).ID)
-	// 	len++
-	// 	return true
-	// }
-
-	// mod.population.Range(f)
-	// fmt.Printf("\nLen: %d\n\n", len)
-}
-
-func (mod *PipedPoolModel) GetAverageFitness() float64 {
-	mod.populationMutex.Lock()
-	defer mod.populationMutex.Unlock()
-
+func (mod *PoolModel) GetAverageFitness() float64 {
 	totalFitness := 0.0
+	items := 0
 
-	for _, indiv := range mod.population {
+	mod.population.Fold(func(indiv eaopt.Individual) bool {
 		totalFitness += indiv.Fitness
-	}
+		items++
+		return true
+	})
 
-	return totalFitness / float64(len(mod.population))
-
-	// len := 0
-
-	// // Range on the map until idx is reached. false makes the iteration stop
-	// f := func(key, value interface{}) bool {
-	// 	fmt.Printf("%s, ", value.(eaopt.Individual).ID)
-	// 	len++
-	// 	return true
-	// }
-
-	// mod.population.Range(f)
-	// fmt.Printf("\nLen: %d\n\n", len)
+	return totalFitness / float64(items)
 }
 
 // Reduce the population size to a fixed preset number by elimiating the
 // individuals with lower fitness
-func (mod *PipedPoolModel) populationGrowControl() {
+func (mod *PoolModel) populationGrowControl() {
 	defer mod.wg.Done()
 
 	for {
-		time.Sleep(1)
+		time.Sleep(1 * time.Second)
 
-		mod.populationMutex.Lock()
-		indivArr := make([]eaopt.Individual, len(mod.population))
+		snap := mod.population.Snapshot()
+		indivArr := make([]eaopt.Individual, len(snap))
+		var bestCopy eaopt.Individual
 		i := 0
 
-		// Get array from Map
-		for _, indiv := range mod.population {
-			indivArr[i] = indiv
+		for _, item := range snap {
+			indivArr[i] = item.Object.(eaopt.Individual)
 			i++
 		}
 
 		SortByFitnessAndNeurons(indivArr)
 
-		// Remove worst elements remaining
-		for i := popSize; i < len(indivArr); i++ {
-			delete(mod.population, indivArr[i].ID)
+		for i := mod.PopSize; i < len(indivArr); i++ {
+			mod.population.Remove(indivArr[i])
 		}
 
-		mod.populationMutex.Unlock()
+		// Replace the remaining worst one by the best one so far
+		if len(indivArr) >= mod.PopSize {
+			mod.population.Remove(indivArr[mod.PopSize-1])
+
+			bestCopy = mod.BestSolution.Clone(mod.Rnd)
+			mod.population.Add(bestCopy)
+		}
 	}
 }

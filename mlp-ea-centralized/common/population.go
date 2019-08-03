@@ -3,63 +3,70 @@ package common
 import (
 	"errors"
 	"math/rand"
-	"sync"
 
-	"github.com/MaxHalford/eaopt"
+	"github.com/patrickmn/go-cache"
+
+	"github.com/salvacorts/eaopt"
 )
 
+// Population stores individuals
 type Population struct {
-	individuals map[string]eaopt.Individual
-	mutexes     map[string]*sync.Mutex
-	globalMutex *sync.Mutex
-
-	// Todo maybe we need a global mutex for rand on map
+	cache *cache.Cache
 }
 
+// MakePopulation returns an empty population
 func MakePopulation() *Population {
 	return &Population{
-		individuals: make(map[string]eaopt.Individual),
-		mutexes:     make(map[string]*sync.Mutex),
-		globalMutex: &sync.Mutex{},
+		cache: cache.New(cache.NoExpiration, cache.NoExpiration),
 	}
 }
 
-func (pop *Population) AddToPopulation(indiv eaopt.Individual) {
-	mut := pop.mutexes[indiv.ID]
-	if mut == nil {
-		mut = &sync.Mutex{}
-		pop.mutexes[indiv.ID] = mut
-	}
-
-	mut.Lock()
-	pop.individuals[indiv.ID] = indiv
-	mut.Unlock()
+// Add an individual
+func (pop *Population) Add(indiv eaopt.Individual) {
+	pop.cache.Set(indiv.ID, indiv, cache.NoExpiration)
 }
 
-func (pop *Population) RemoveFromPopulation(indiv eaopt.Individual) {
-	mut := pop.mutexes[indiv.ID]
-	if mut != nil { // TODO: expect this
-		Log.Fatalln("No mutex for this individual on map, does it exist?")
-	}
-
-	mut.Lock()
-	delete(pop.individuals, indiv.ID)
-	mut.Unlock()
-
-	delete(pop.mutexes, indiv.ID)
+// Remove an individual
+func (pop *Population) Remove(indiv eaopt.Individual) {
+	pop.cache.Delete(indiv.ID)
 }
 
+// Length returns the size of the population
 func (pop *Population) Length() int {
-	return len(pop.individuals)
+	return pop.cache.ItemCount()
 }
 
+// Fold applies function f to each individual in the population
+// until the end is reached or f returns false
+func (pop *Population) Fold(f func(eaopt.Individual) bool) {
+	items := pop.cache.Items()
+
+	for _, item := range items {
+		cont := f(item.Object.(eaopt.Individual))
+
+		if !cont {
+			break
+		}
+	}
+}
+
+// Snapshot returns the state of the population
+// at the moment it was called.
+// TODO: Wrap the cache.Item type to eaopt.Individual
+func (pop *Population) Snapshot() map[string]cache.Item {
+	return pop.cache.Items()
+}
+
+// RandIndividual takes an snapshot of the population and returns a random entry from it
 func (pop *Population) RandIndividual(rnd *rand.Rand) (eaopt.Individual, error) {
-	target := rnd.Intn(len(pop.individuals))
+	items := pop.cache.Items()
+
+	target := rnd.Intn(len(items))
 	idx := 0
 
-	for _, indiv := range pop.individuals {
+	for _, item := range items {
 		if idx == target {
-			return indiv, nil
+			return item.Object.(eaopt.Individual), nil
 		}
 
 		idx++
@@ -67,11 +74,3 @@ func (pop *Population) RandIndividual(rnd *rand.Rand) (eaopt.Individual, error) 
 
 	return eaopt.Individual{}, errors.New("Could not get random individual")
 }
-
-// func (pop *Population) GetValues() []eaopt.Individual {
-// 	values := make([]eaopt.Individual, len(pop.individuals))
-
-// 	for _, v := range pop.individuals
-
-// 	return values
-// }

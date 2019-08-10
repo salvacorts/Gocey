@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>MLP GA</title>
+        <link rel="stylesheet" href="style.css">
+        <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+
+        <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+
+        <!-- Chart JS -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0/dist/Chart.min.js"></script>
+    </head>
+
+    <body>
+        <div class="grid" id="mainGrid">
+            <div class="box header">
+                <p class="title">Multi-Layer Perceptron Genetic Algorithm</p>
+            </div>
+            <div class="box a">
+                <div class="chart">
+                    <canvas id="chartFitness"></canvas>
+                </div>
+            </div>
+            <div class="box b">
+                <div class="chart">
+                        <canvas id="chartNeurons"></canvas>
+                </div>
+            </div>
+            <div class="box c">
+                <div class="tabs">
+                        <ul class="nav nav-tabs">
+                            <li class="active"><a data-toggle="tab" href="#logs">Logs</a></li>
+                            <li><a data-toggle="tab" href="#conf">Configuration</a></li>
+                        </ul>
+                </div>
+                <div class="tab-content tab-contentOverride">
+                    <div id="logs" class="tab-pane fade in active logs">
+                    </div>
+                    <div id="conf" class="tab-pane fade">
+                        <h3>Configuration</h3>
+                        <p>Show experiment parameters</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="main.js"></script>
+        <noscript>
+            <div style="margin-top:20%;">
+                <h2 class='text-center'>Please turn on JS</h2>
+            </div>
+    </body>
+</html>

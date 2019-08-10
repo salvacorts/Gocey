@@ -190,8 +190,8 @@ func BackPropagate(mlp *MultiLayerNetwork, s *mn.Pattern, o []float64, tFunc Tra
 	return
 }
 
-// Train a mlp MultiLayerNetwork with BackPropagation algorithm for assisted learning.
-func Train(mlp *MultiLayerNetwork, patterns []mn.Pattern, mapped []string, epochs int, bp ...bool) {
+// Training a mlp MultiLayerNetwork with BackPropagation algorithm for assisted learning.
+func Training(mlp *MultiLayerNetwork, patterns []mn.Pattern, mapped []string, epochs int, bp ...bool) {
 
 	epoch := 0
 	output := make([]float64, len(mapped))

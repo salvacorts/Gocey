@@ -34,7 +34,7 @@ func KFoldValidation(mlp *MultiLayerNetwork, patterns []mn.Pattern, epochs int, 
 		test = folds[t]
 
 		// train mlp with set of patterns, for specified number of epochs
-		Train(mlp, patterns, mapped, epochs)
+		Training(mlp, patterns, mapped, epochs)
 
 		var tFunc TransferF
 

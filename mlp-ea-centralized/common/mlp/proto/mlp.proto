@@ -37,5 +37,5 @@ message NeuralLayer {
 message MultiLayerNetwork {
     double LRate = 1;
     repeated NeuralLayer NeuralLayers = 2 [(gogoproto.nullable) = false];
-    TransferFunc TFunc = 3;  // TODO: change for an enum
+    TransferFunc TFunc = 3;
 }

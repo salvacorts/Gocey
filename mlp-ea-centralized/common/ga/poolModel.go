@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/rand"
 	"net"
-	"net/http"
 	"reflect"
 	"runtime"
 	"sync"
@@ -297,12 +296,6 @@ func (mod *PoolModel) handleEvaluate() {
 	mod.grpcServer = grpc.NewServer()
 	mlp.RegisterDistributedEAServer(mod.grpcServer, mlpServer)
 
-	// Wrap gRPC server to support websocket requests
-	//serverWrapper := grpcweb.WrapServer(mod.grpcServer, grpcweb.WithWebsockets(true))
-	// handler := func(resp http.ResponseWriter, req *http.Request) {
-	// 	serverWrapper.ServeHTTP(resp, req)
-	// }
-
 	// Setup listener for native clients
 	lisNative, err := net.Listen("tcp", fmt.Sprintf("%s:%d", listenAddr, nativePort))
 	if err != nil {
@@ -310,19 +303,16 @@ func (mod *PoolModel) handleEvaluate() {
 	}
 
 	// Setup listener for wasm clients based on websockets
-	handler := http.FileServer(http.Dir("."))
-	lisWasm, err := ws.Listen(fmt.Sprintf("ws://%s:%d/ws", listenAddr, wasmPort), handler)
-	// lisWasm, err := ws.ListenTLS(
-	//	fmt.Sprintf("wss://%s:%d/ws", listenAddr, wasmPort), handler, "./insecure/cert.pem", "./insecure/key.pem")
+	lisWasm, err := ws.Listen(fmt.Sprintf("ws://%s:%d", listenAddr, wasmPort), nil)
 	if err != nil {
 		panic(err)
 	}
 	defer lisNative.Close()
 
-	Log.Infof("gRPC Server Listening on: %s:%d", listenAddr, nativePort)
+	Log.Infof("gRPC Listening on %s", lisNative.Addr().String())
 	go mod.grpcServer.Serve(lisNative)
 
-	Log.Infof("gRPC-Web Server Listening on: wss://%s:%d/ws", listenAddr, wasmPort)
+	Log.Infof("gRPC-Web Listening on %s:%d", lisWasm.Addr().String(), wasmPort)
 	go mod.grpcServer.Serve(lisWasm)
 
 	// Wait until stop is received

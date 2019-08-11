@@ -17,14 +17,12 @@ func main() {
 	logger := WebLogger{}
 
 	client := client.MLPClient{
-		//ServerAddr: "wss://127.0.0.1:3118/ws",
-		ServerAddr: "ws://127.0.0.1:3118/ws",
+		ServerAddr: "ws://127.0.0.1:3118",
 		ID:         "clientWasm",
 		Log:        logrus.New(),
 
 		// Use WebSockets
 		CustomDialer: func(s string, dt time.Duration) (net.Conn, error) {
-			//return ws.DialTLS(s, []byte(insecure.Cert))
 			return ws.Dial(s)
 		},
 	}
@@ -39,6 +37,4 @@ func main() {
 	if err != nil {
 		client.Log.Fatalf("Got error from client: %s", err.Error())
 	}
-
-	select {} // TODO: I think it is useless
 }

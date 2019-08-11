@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/dennwc/dom/net/ws"
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/ga"
 
-	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/ga/client"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,7 +16,7 @@ func main() {
 
 	logger := WebLogger{}
 
-	client := client.MLPClient{
+	client := ga.MLPClient{
 		ServerAddr: "ws://127.0.0.1:3118",
 		ID:         "clientWasm",
 		Log:        logrus.New(),

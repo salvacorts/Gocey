@@ -1,8 +1,7 @@
-package client
+package ga
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"time"
 
@@ -20,6 +19,28 @@ type MLPClient struct {
 	Log          *logrus.Logger
 	ID           string
 	CustomDialer func(s string, dt time.Duration) (net.Conn, error)
+
+	finalize bool
+}
+
+// StatsFetcher is a thread to ask server about stats {best_fitness, best_neurons, total_evaluations_overall}
+func (c *MLPClient) StatsFetcher(client *mlp.DistributedEAClient) {
+	for !c.finalize {
+		time.Sleep(30 * time.Second)
+
+		stats, err := (*client).GetStats(context.Background(), &empty.Empty{})
+		if err != nil {
+			c.Log.Errorf("Could not get stats from server")
+		}
+
+		c.Log.WithFields(logrus.Fields{
+			"level":       "info",
+			"Scope":       "remote",
+			"Evaluations": stats.Evaluations,
+			"BestFitness": stats.BestFitness,
+			"AvgFitness":  stats.AvgFitness,
+		}).Infof("Got Stats from server")
+	}
 }
 
 // Start starts the client on a while loop borrowing, evaluating and returning individuals
@@ -48,12 +69,13 @@ func (c *MLPClient) Start() error {
 
 	client := mlp.NewDistributedEAClient(conn)
 
+	c.finalize = false
+	go c.StatsFetcher(&client)
+
 	desc, err := client.GetProblemDescription(context.Background(), &empty.Empty{})
 	if err != nil {
 		c.Log.Fatalf("Cannot get problem description from server. Error: %s", err.Error())
 	}
-
-	fmt.Printf(desc.TrainDataset)
 
 	mlp.Config.Epochs = int(desc.Epochs)
 	mlp.Config.Folds = int(desc.Folds)
@@ -82,7 +104,12 @@ func (c *MLPClient) Start() error {
 			break
 		}
 
-		c.Log.Infof("Got score: %f", score)
+		c.Log.WithFields(logrus.Fields{
+			"level":       "info",
+			"Scope":       "local",
+			"Evaluations": localEvaluations,
+			"Fitness":     score,
+		}).Infof("Got score: %f", score)
 
 		out := &mlp.MLPMsg{
 			Mlp:          (*mlp.MultiLayerNetwork)(nn),
@@ -100,10 +127,12 @@ func (c *MLPClient) Start() error {
 
 		localEvaluations++
 
-		if localEvaluations%1000 == 0 {
+		if localEvaluations%100 == 0 {
 			c.Log.Infof("Throughput: %d evaluations / second", localEvaluations/int(time.Since(start).Seconds()))
 		}
 	}
+
+	c.finalize = true
 
 	return nil
 }

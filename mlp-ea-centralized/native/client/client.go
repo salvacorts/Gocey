@@ -3,14 +3,14 @@ package main
 import (
 	"os"
 
-	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/ga/client"
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/ga"
 	"google.golang.org/grpc/grpclog"
 
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	client := client.MLPClient{
+	client := ga.MLPClient{
 		ServerAddr: "127.0.0.1:3117",
 		ID:         "clientNative",
 		Log:        logrus.New(),

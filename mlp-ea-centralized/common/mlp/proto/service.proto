@@ -15,16 +15,22 @@ message MLPMsg {
 
 message ProblemDescription {
     string clientID = 1;
-
     int64 epochs = 2;
     int64 folds = 3;
     string trainDataset = 4;
     repeated string classes = 5;
+}
 
+message Stats {
+    int64 evaluations = 2;
+    double bestFitness = 3;
+    double avgFitness = 4;
 }
 
 service DistributedEA {
     rpc GetProblemDescription(google.protobuf.Empty) returns (ProblemDescription) {}
+
+    rpc GetStats(google.protobuf.Empty) returns (Stats) {}
 
     rpc BorrowIndividual(google.protobuf.Empty) returns (MLPMsg) {}
 

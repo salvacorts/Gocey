@@ -1,4 +1,6 @@
-package server
+//+build !js
+
+package ga
 
 import (
 	"context"
@@ -21,8 +23,9 @@ type MLPServer struct {
 	Log    *logrus.Logger
 	Input  chan eaopt.Individual
 	Output chan eaopt.Individual
+	Pool   *PoolModel
 
-	clients int // TODO: Timeout clients
+	clients int
 }
 
 // GetProblemDescription returs the configuration for the problem execution to the client
@@ -38,6 +41,17 @@ func (s *MLPServer) GetProblemDescription(ctx context.Context, in *empty.Empty) 
 	s.clients++
 
 	return description, nil
+}
+
+// GetStats returs the statistics of the overall execution on the algorithm
+func (s *MLPServer) GetStats(ctx context.Context, in *empty.Empty) (*mlp.Stats, error) {
+	stats := &mlp.Stats{
+		Evaluations: int64(s.Pool.GetTotalEvaluations()),
+		BestFitness: s.Pool.BestSolution.Fitness,
+		AvgFitness:  s.Pool.GetAverageFitness(),
+	}
+
+	return stats, nil
 }
 
 // BorrowIndividual implements DistributedEA service

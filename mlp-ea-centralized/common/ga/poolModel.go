@@ -1,3 +1,5 @@
+//+build !js
+
 package ga
 
 import (
@@ -10,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/ga/server"
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/mlp"
 
 	"github.com/dennwc/dom/net/ws"
@@ -286,10 +287,13 @@ func (mod *PoolModel) handleEvaluate() {
 		wasmPort   int    = nativePort + 1
 	)
 
-	mlpServer := &server.MLPServer{
+	mlpServer := &MLPServer{
 		Input:  mod.evaluationChannel,
 		Output: mod.evaluatedChannel,
 		Log:    Log,
+
+		// For stats
+		Pool: mod,
 	}
 
 	// Start listening on server
@@ -323,6 +327,11 @@ func (mod *PoolModel) handleEvaluate() {
 
 func getFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
+// GetTotalEvaluations returns the total number of evaluations carried out so far
+func (mod *PoolModel) GetTotalEvaluations() int {
+	return mod.evaluations
 }
 
 // GetAverageFitness returns the vaerage fitness of the population

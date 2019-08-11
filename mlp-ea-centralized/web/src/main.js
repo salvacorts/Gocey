@@ -1,13 +1,17 @@
 const logs = document.getElementById("logs")
-var chartFitness_ctx = document.getElementById('chartFitness').getContext('2d');
-var chartNeurons_ctx = document.getElementById('chartNeurons').getContext('2d');
+var chartLocal_ctx = document.getElementById('chartLocal').getContext('2d');
+var chartRemote_ctx = document.getElementById('chartRemote').getContext('2d');
 
 const worker = new Worker("worker.js")
 
-avg = []
+// Local stats
 fitness = []
-neurons = []
-generations = []
+evaluations = []
+
+// Remote stats
+totalEvaluations = []
+avgFitness = []
+bestFitness = []
 
 worker.onmessage = function(e) {
     json = JSON.parse(e.data)
@@ -17,36 +21,36 @@ worker.onmessage = function(e) {
     }
 
     // Append log to log box
-    text = json.msg + ". Neurons: " + json.HiddenLayer_Neurons
+    text = json.msg
     logs.innerHTML += "<br/>" + text
     logs.scrollTop = logs.scrollHeight
     console.log(text)
 
     // Append data to charts
-    avg.push(round(json.Avg))
-    fitness.push(round(json.Fitness))
-    generations.push(json.Generation)
-    neurons.push(json.HiddenLayer_Neurons)
-    chartFitness.update()
-    chartNeurons.update()
+    switch(json.Scope) {
+        case "local":
+            evaluations.push(json.Evaluations)
+            fitness.push(round(json.Fitness))
+            chartLocal.update()
+            break;
+        case "remote":
+            totalEvaluations.push(json.Evaluations)
+            avgFitness.push(round(json.AvgFitness))
+            bestFitness.push(round(json.BestFitness))
+            chartRemote.update()
+          break;
+      }
 }
 
-const chartFitness = new Chart(chartFitness_ctx, {
+const chartLocal = new Chart(chartLocal_ctx, {
     type: 'line',
     data: {
-        labels: generations,
+        labels: evaluations,
         datasets: [{
-            label: 'Best Solution',
+            label: 'Fitness of evaluated individuals',
             data: fitness,
             backgroundColor: "#00b894",
             borderColor: "#00b894",
-            fill: false,
-            lineTension: 0,
-        }, {
-            label: 'Avg',
-            data: avg,
-            backgroundColor: "#8e5ea2",
-            borderColor: "#8e5ea2",
             fill: false,
             lineTension: 0,
         }]
@@ -55,7 +59,7 @@ const chartFitness = new Chart(chartFitness_ctx, {
         responsive: true,
         title: {
             display: true,
-            text: 'Fitness'
+            text: 'Local Statistics'
         },
         tooltips: {
             mode: 'index',
@@ -70,29 +74,37 @@ const chartFitness = new Chart(chartFitness_ctx, {
                 display: true,
                 scaleLabel: {
                     display: true,
-                    labelString: 'Generations'
+                    labelString: 'Evaluations'
                 }
             }],
             yAxes: [{
                 display: true,
                 scaleLabel: {
                     display: true,
-                    labelString: 'Error'
+                    labelString: 'Fitness'
                 }
             }]
         }
     }
 });
 
-const chartNeurons = new Chart(chartNeurons_ctx, {
+const chartRemote = new Chart(chartRemote_ctx, {
     type: 'line',
     data: {
-        labels: generations,
+        labels: totalEvaluations,
         datasets: [{
             label: 'Best solution',
-            data: neurons,
+            data: bestFitness,
             backgroundColor: "#3e95cd",
             borderColor: "#3e95cd",
+            fill: false,
+            lineTension: 0,
+        },
+        {
+            label: 'Average',
+            data: avgFitness,
+            backgroundColor: "#6c5ce7",
+            borderColor: "#6c5ce7",
             fill: false,
             lineTension: 0,
         }]
@@ -101,7 +113,7 @@ const chartNeurons = new Chart(chartNeurons_ctx, {
         responsive: true,
         title: {
             display: true,
-            text: 'Hidden Layer Neurons'
+            text: 'Server Statistics'
         },
         tooltips: {
             mode: 'index',
@@ -116,14 +128,14 @@ const chartNeurons = new Chart(chartNeurons_ctx, {
                 display: true,
                 scaleLabel: {
                     display: true,
-                    labelString: 'Generations'
+                    labelString: 'Evaluations'
                 }
             }],
             yAxes: [{
                 display: true,
                 scaleLabel: {
                     display: true,
-                    labelString: 'Neurons'
+                    labelString: 'Fitness'
                 }
             }]
         },

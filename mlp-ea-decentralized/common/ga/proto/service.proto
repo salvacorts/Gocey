@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package ga;
+
+import "github.com/golang/protobuf/ptypes/empty/empty.proto";
+
+message Individual {
+    string clientID = 1;
+    string individualID = 2;
+    bool evaluated = 3;
+    double fitness = 4;
+    
+    bytes genome = 5;
+}
+
+message Stats {
+    int64 evaluations = 2;
+    double bestFitness = 3;
+    double avgFitness = 4;
+}
+
+message ProblemDescription {
+    string clientID = 1;
+
+    bytes payload = 2;
+}
+
+service DistributedEA {
+    rpc GetProblemDescription(google.protobuf.Empty) returns (ProblemDescription) {}
+
+    rpc GetStats(google.protobuf.Empty) returns (Stats) {}
+
+    rpc BorrowIndividual(google.protobuf.Empty) returns (Individual) {}
+
+    rpc ReturnIndividual(Individual) returns (google.protobuf.Empty) {}
+}

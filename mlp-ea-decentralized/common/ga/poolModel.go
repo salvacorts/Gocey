@@ -23,28 +23,6 @@ import (
 // Log is the Pool Logger
 var Log = logrus.New()
 
-type semaphore chan int
-
-func (sem semaphore) Acquire(n int) {
-	for i := 0; i < n; i++ {
-		<-sem
-	}
-}
-
-func (sem semaphore) Release(n int) {
-	for i := 0; i < n; i++ {
-		sem <- 1
-	}
-}
-
-func removeIndividual(in []eaopt.Individual, i int) []eaopt.Individual {
-	return append(in[:i], in[i+1:]...)
-}
-
-// Pipe represents a function that applies an operator to a Genome that
-// comes from the first channel and goes through the second channel
-//type Pipe = func(in, out chan eaopt.Individual)
-
 // PoolModel is a pool-based evolutionary algorithm
 type PoolModel struct {
 	Rnd            *rand.Rand
@@ -74,11 +52,15 @@ type PoolModel struct {
 	// Clients communications
 	evaluations       int
 	wg                sync.WaitGroup
-	grpcServer        *grpc.Server
 	stop              chan bool
 	shrinkChan        chan bool
 	evaluationChannel chan eaopt.Individual
 	evaluatedChannel  chan eaopt.Individual
+
+	// Client Settings
+	Delegate   ServiceDelegate
+	grpcServer *grpc.Server
+	grpcPort   int
 
 	// Cluster communications
 	cluster Cluster
@@ -88,7 +70,7 @@ type PoolModel struct {
 }
 
 // MakePool Creates a new pool with default configuration
-func MakePool(popSize int, clusterPort int, boostrapPeers []string, rnd *rand.Rand) *PoolModel {
+func MakePool(popSize int, grpcPort, clusterPort int, boostrapPeers []string, rnd *rand.Rand) *PoolModel {
 	pool := &PoolModel{
 		Rnd:               rnd,
 		PopSize:           popSize,
@@ -98,6 +80,7 @@ func MakePool(popSize int, clusterPort int, boostrapPeers []string, rnd *rand.Ra
 		stop:              make(chan bool),
 		evaluationChannel: make(chan eaopt.Individual, popSize),
 		evaluatedChannel:  make(chan eaopt.Individual, popSize),
+		grpcPort:          grpcPort,
 		BestSolution: eaopt.Individual{
 			Fitness: math.Inf(1),
 		},
@@ -123,12 +106,15 @@ func (mod *PoolModel) Minimize() {
 	mod.wg.Add(4)
 	defer mod.wg.Wait()
 
-	// Launch cluster membership service
-	go mod.cluster.Join()
-
 	// Launch client requests handlers
 	go mod.handleEvaluate()
 	go mod.handleEvaluated()
+
+	// Launch cluster membership service
+	go mod.cluster.Join(NodeMeta{
+		GrpcPort:   int64(mod.grpcPort),
+		GrpcWsPort: int64(mod.grpcPort + 1),
+	})
 
 	// Append all individuals in the population to the evaluation channel
 	mod.population.Fold(func(indiv eaopt.Individual) bool {
@@ -154,8 +140,6 @@ func (mod *PoolModel) Minimize() {
 		for i := range offsprings {
 			for _, op := range mod.ExtraOperators {
 				if mod.Rnd.Float64() <= op.Probability {
-					//mod.removeIndividual(offsprings[i])
-
 					offsprings[i].Evaluated = false
 					offsprings[i].Genome = op.Operator(offsprings[i].Genome, mod.Rnd)
 				}
@@ -302,13 +286,13 @@ func (mod *PoolModel) handleEvaluated() {
 func (mod *PoolModel) handleEvaluate() {
 	defer mod.wg.Done()
 
-	const (
-		listenAddr string = "127.0.0.1"
-		nativePort int    = 3117
-		wasmPort   int    = nativePort + 1
+	var (
+		listenAddr = "127.0.0.1"
+		nativePort = mod.grpcPort
+		wasmPort   = nativePort + 1
 	)
 
-	mlpServer := &MLPServer{
+	mlpServer := &Server{
 		Input:  mod.evaluationChannel,
 		Output: mod.evaluatedChannel,
 		Log:    Log,
@@ -319,7 +303,7 @@ func (mod *PoolModel) handleEvaluate() {
 
 	// Start listening on server
 	mod.grpcServer = grpc.NewServer()
-	mlp.RegisterDistributedEAServer(mod.grpcServer, mlpServer)
+	RegisterDistributedEAServer(mod.grpcServer, mlpServer)
 
 	// Setup listener for native clients
 	lisNative, err := net.Listen("tcp", fmt.Sprintf("%s:%d", listenAddr, nativePort))

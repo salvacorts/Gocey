@@ -9,6 +9,20 @@ import (
 	"github.com/salvacorts/eaopt"
 )
 
+type semaphore chan int
+
+func (sem semaphore) Acquire(n int) {
+	for i := 0; i < n; i++ {
+		<-sem
+	}
+}
+
+func (sem semaphore) Release(n int) {
+	for i := 0; i < n; i++ {
+		sem <- 1
+	}
+}
+
 // Population stores individuals
 type Population struct {
 	cache *cache.Cache

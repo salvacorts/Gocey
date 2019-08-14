@@ -6,6 +6,10 @@ def build_protobuf(c):
         print("[++] Compiling proto files for MLP")
         c.run("protoc -I.:$GOPATH/src:$GOPATH/src/github.com/gogo/protobuf/protobuf --gogo_out=plugins=grpc:.. *.proto", replace_env=False)
 
+    with c.cd("common/ga/proto"):
+        print("[++] Compiling proto files for GA")
+        c.run("protoc -I.:$GOPATH/src:$GOPATH/src/github.com/gogo/protobuf/protobuf --gogo_out=plugins=grpc:.. *.proto", replace_env=False)
+
 @task(optional=['test'])
 def build_web_mlp(c, test=False):
     """

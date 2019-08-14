@@ -1,19 +1,28 @@
 package main
 
 import (
+	"flag"
 	"os"
 
-	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/ga"
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-decentralized/common/ga"
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-decentralized/common/mlp"
 	"google.golang.org/grpc/grpclog"
 
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	serverAddr = flag.String("server", "127.0.0.1:3117", "Server address in format addr:port.")
+)
+
 func main() {
-	client := ga.MLPClient{
-		ServerAddr: "127.0.0.1:3117",
+	flag.Parse()
+
+	client := ga.Client{
+		ServerAddr: *serverAddr,
 		ID:         "clientNative",
 		Log:        logrus.New(),
+		Delegate:   mlp.DelegateImpl{},
 	}
 
 	logrus.SetLevel(logrus.ErrorLevel)

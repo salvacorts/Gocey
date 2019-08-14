@@ -20,6 +20,8 @@ import (
 
 // TODO: Append here GA and Pool params
 var (
+	// Opened ports
+	grpcPort        = flag.Int("grpcPort", 3117, "Port to listen for grpc requests")
 	clusterPort     = flag.Int("clusterPort", 9999, "Listening port for gossip protocol")
 	clusterBoostrap = flag.String("clusterBoostrap", "", "comma separated list of peers already ina  cluster to join")
 )
@@ -58,14 +60,15 @@ func main() {
 
 	// Create Pool
 	pool := ga.MakePool(
-		100, *clusterPort,
+		100, *grpcPort, *clusterPort,
 		strings.Split(*clusterBoostrap, ","),
 		rand.New(rand.NewSource(7)))
 
 	// Configure  extra pool settings
+	pool.Delegate = mlp.DelegateImpl{}
 	pool.KeepBest = false
 	pool.SortPrecission = 0.01
-	pool.SortFunction = ga.SortByFitnessAndNeurons
+	pool.SortFunction = mlp.SortByFitnessAndNeurons
 	pool.CrossRate = 0.3
 	pool.MutRate = 0.3
 	pool.MaxEvaluations = 1000000
@@ -104,7 +107,7 @@ func main() {
 		"ExecTime": time.Since(start),
 	}).Infof("Execution time: %s", time.Since(start))
 
-	best := pool.BestSolution.Genome.(*mlp.MLP)
+	best := pool.BestSolution.Genome.(*mlp.MultiLayerNetwork)
 	bestScore := pool.BestSolution.Fitness
 
 	logrus.WithFields(logrus.Fields{
@@ -112,7 +115,7 @@ func main() {
 		"TrainingFitness": bestScore,
 	}).Infof("Training Error: %f", bestScore)
 
-	predictions := mlp.PredictN((*mlp.MultiLayerNetwork)(best), test)
+	predictions := mlp.PredictN(best, test)
 	predictionsR := utils.RoundPredictions(predictions)
 	_, testAcc := utils.AccuracyN(predictionsR, test)
 

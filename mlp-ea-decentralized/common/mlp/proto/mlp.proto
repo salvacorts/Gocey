@@ -17,6 +17,7 @@ option (gogoproto.testgen_all) = true;
 option (gogoproto.equal_all) = true;
 option (gogoproto.populate_all) = true;
 
+
 enum TransferFunc {
     SIGMOIDAL = 0;
 }
@@ -38,4 +39,11 @@ message MultiLayerNetwork {
     double LRate = 1;
     repeated NeuralLayer NeuralLayers = 2 [(gogoproto.nullable) = false];
     TransferFunc TFunc = 3;
+}
+
+message MLPDescription {
+    int64 epochs = 1;
+    int64 folds = 2;
+    string trainDataset = 3;
+    repeated string classes = 4;
 }

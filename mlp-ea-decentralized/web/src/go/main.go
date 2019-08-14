@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"github.com/dennwc/dom/net/ws"
-	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/ga"
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-decentralized/common/ga"
+	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-decentralized/common/mlp"
 
 	"github.com/sirupsen/logrus"
 )
@@ -16,10 +17,11 @@ func main() {
 
 	logger := WebLogger{}
 
-	client := ga.MLPClient{
+	client := ga.Client{
 		ServerAddr: "ws://127.0.0.1:3118",
 		ID:         "clientWasm",
 		Log:        logrus.New(),
+		Delegate:   mlp.DelegateImpl{},
 
 		// Use WebSockets
 		CustomDialer: func(s string, dt time.Duration) (net.Conn, error) {

@@ -10,7 +10,7 @@ import (
 var Config MLPConfig
 
 // Log is the logger for the MLP
-var Log *logrus.Logger = logrus.New()
+var Log = logrus.New()
 
 // TransferFunction stands for a transfer function
 type TransferFunction = func(float64) float64

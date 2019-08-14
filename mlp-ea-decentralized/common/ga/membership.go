@@ -1,10 +1,12 @@
+//+build !js
+
 package ga
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
+	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/hashicorp/memberlist"
 	"github.com/sirupsen/logrus"
@@ -30,13 +32,29 @@ func MakeCluster() *Cluster {
 	}
 }
 
+func (c *Cluster) PrintMembers() {
+	for {
+		time.Sleep(5 * time.Second)
+
+		nodes := c.list.Members()
+		str := fmt.Sprintf("Nodes - %d:\n", len(nodes))
+
+		for _, node := range nodes {
+			str += fmt.Sprintf("%s:%d - %s\n", node.Addr.String(), node.Port, node.Name)
+		}
+
+		c.Logger.Info(str)
+	}
+}
+
 // Join creates a new node for this process and joins a existing cluster
 // by connecting to peers in cluster.boostrapPeers array
-func (c *Cluster) Join() {
+func (c *Cluster) Join(metadata NodeMeta) {
 	// Default conf for wide networks with event listener
 	conf := memberlist.DefaultWANConfig()
 	conf.Events = &eventHandler{c.Logger}
 	conf.BindPort = c.ListeningPort
+	conf.Name = uuid.New().String()
 
 	// Create a new Node
 	list, err := memberlist.Create(conf)
@@ -47,6 +65,13 @@ func (c *Cluster) Join() {
 	c.list = list
 	c.Logger.Infof("Local cluster node: %s", c.list.LocalNode().String())
 
+	metaSer, err := metadata.Marshal()
+	if err != nil {
+		c.Logger.Fatalf("Could not serialized node metadata. %s", err.Error())
+	}
+
+	c.list.LocalNode().Meta = metaSer
+
 	// Try to join a cluster with bootstap nodes.
 	// If it fails, be an standalone node waiting for incoming connections
 	_, err = c.list.Join(c.BoostrapPeers)
@@ -55,15 +80,7 @@ func (c *Cluster) Join() {
 		c.Logger.Warnf("Standalone node created. Should be a boostrap for another joining node")
 	}
 
-	// Handle exit signals to gracefully leave the cluster
-	// If force stopped, the gossip protocol will take care of node failure
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-
-	<-stop
-
-	c.Logger.Info("Leaving cluster. Timeout set to 5 seconds")
-	c.list.Leave(5 * time.Second)
+	select {} // TODO: Replace by a stop channel
 }
 
 // GetMembers resturns the members on the cluster
@@ -72,13 +89,13 @@ func (c *Cluster) GetMembers() []*memberlist.Node {
 }
 
 func (c *eventHandler) NotifyJoin(node *memberlist.Node) {
-	c.Logger.Infof("Node joined: %s", node.String())
+	c.Logger.Infof("Node joined: %s:%d", node.Addr.String(), node.Port)
 }
 
 func (c *eventHandler) NotifyLeave(node *memberlist.Node) {
-	c.Logger.Infof("Node lest: %s", node.String())
+	c.Logger.Infof("Node left: %s:%d", node.Addr.String(), node.Port)
 }
 
 func (c *eventHandler) NotifyUpdate(node *memberlist.Node) {
-	c.Logger.Infof("Node updated: %s", node.String())
+	c.Logger.Infof("Node updated: %s:%d", node.Addr.String(), node.Port)
 }

@@ -12,6 +12,7 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 option (gogoproto.goproto_getters_all) = false;
 
+// TODO: Add best Solution to spread it on node update
 message NodeMeta {
     int64 grpcPort = 1;
     int64 grpcWsPort = 2;  

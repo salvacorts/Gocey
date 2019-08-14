@@ -32,6 +32,7 @@ func MakeCluster() *Cluster {
 	}
 }
 
+// PrintMembers of the p2p cluster
 func (c *Cluster) PrintMembers() {
 	for {
 		time.Sleep(5 * time.Second)
@@ -89,7 +90,11 @@ func (c *Cluster) GetMembers() []*memberlist.Node {
 }
 
 func (c *eventHandler) NotifyJoin(node *memberlist.Node) {
-	c.Logger.Infof("Node joined: %s:%d", node.Addr.String(), node.Port)
+	meta := NodeMeta{}
+	meta.Unmarshal(node.Meta)
+
+	c.Logger.Infof("Node joined: %s:%d - Grpc: (%d, %d)",
+		node.Addr.String(), node.Port, meta.GrpcPort, meta.GrpcWsPort)
 }
 
 func (c *eventHandler) NotifyLeave(node *memberlist.Node) {

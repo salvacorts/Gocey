@@ -50,12 +50,13 @@ type PoolModel struct {
 	popSemaphore semaphore
 
 	// Clients communications
-	evaluations       int
-	wg                sync.WaitGroup
-	stop              chan bool
-	shrinkChan        chan bool
-	evaluationChannel chan eaopt.Individual
-	evaluatedChannel  chan eaopt.Individual
+	evaluations           int
+	wg                    sync.WaitGroup
+	stop                  chan bool
+	shrinkChan            chan bool
+	evaluationChannel     chan eaopt.Individual
+	evaluatedChannel      chan eaopt.Individual
+	BroadcastedIndividual chan Individual
 
 	// Client Settings
 	Delegate   ServiceDelegate
@@ -63,7 +64,7 @@ type PoolModel struct {
 	grpcPort   int
 
 	// Cluster communications
-	cluster Cluster
+	cluster *Cluster
 
 	// Stats
 	fitAvg float64
@@ -72,25 +73,23 @@ type PoolModel struct {
 // MakePool Creates a new pool with default configuration
 func MakePool(popSize int, grpcPort, clusterPort int, boostrapPeers []string, rnd *rand.Rand) *PoolModel {
 	pool := &PoolModel{
-		Rnd:               rnd,
-		PopSize:           popSize,
-		population:        MakePopulation(),
-		popSemaphore:      make(semaphore, popSize),
-		evaluations:       0,
-		stop:              make(chan bool),
-		evaluationChannel: make(chan eaopt.Individual, popSize),
-		evaluatedChannel:  make(chan eaopt.Individual, popSize),
-		grpcPort:          grpcPort,
+		Rnd:                   rnd,
+		PopSize:               popSize,
+		population:            MakePopulation(),
+		popSemaphore:          make(semaphore, popSize),
+		evaluations:           0,
+		stop:                  make(chan bool),
+		evaluationChannel:     make(chan eaopt.Individual, popSize),
+		evaluatedChannel:      make(chan eaopt.Individual, popSize),
+		BroadcastedIndividual: make(chan Individual, popSize),
+		grpcPort:              grpcPort,
 		BestSolution: eaopt.Individual{
 			Fitness: math.Inf(1),
 		},
-
-		cluster: Cluster{
-			Logger:        Log,
-			ListeningPort: clusterPort,
-			BoostrapPeers: boostrapPeers,
-		},
 	}
+
+	pool.cluster = MakeCluster(clusterPort, popSize, pool.BroadcastedIndividual, boostrapPeers, logrus.New())
+	pool.cluster.Logger.SetLevel(logrus.DebugLevel)
 
 	for i := 0; i < pool.PopSize; i++ {
 		indi := eaopt.NewIndividual(mlp.NewRandMLP(pool.Rnd), pool.Rnd)
@@ -109,12 +108,10 @@ func (mod *PoolModel) Minimize() {
 	// Launch client requests handlers
 	go mod.handleEvaluate()
 	go mod.handleEvaluated()
+	go mod.handleBroadcastedIndividual()
 
 	// Launch cluster membership service
-	go mod.cluster.Join(NodeMeta{
-		GrpcPort:   int64(mod.grpcPort),
-		GrpcWsPort: int64(mod.grpcPort + 1),
-	})
+	go mod.cluster.Start(mod.getCurrentNodeMetadata())
 
 	// Append all individuals in the population to the evaluation channel
 	mod.population.Fold(func(indiv eaopt.Individual) bool {
@@ -245,6 +242,16 @@ func (mod *PoolModel) handleEvaluated() {
 				mod.BestSolution = o1.Clone(mod.Rnd)
 				mod.BestSolution.ID = o1.ID
 
+				// Spread the new best solution accross the cluster
+				indiv := Individual{
+					IndividualID: mod.BestSolution.ID,
+					Evaluated:    mod.BestSolution.Evaluated,
+					Fitness:      mod.BestSolution.Fitness,
+					Genome: mod.Delegate.SerializeGenome(
+						mod.BestSolution.Genome),
+				}
+				mod.cluster.BroadcastBestIndividual <- indiv
+
 				if mod.BestCallback != nil {
 					mod.BestCallback(mod)
 				}
@@ -254,7 +261,7 @@ func (mod *PoolModel) handleEvaluated() {
 			mod.popSemaphore.Release(1)
 			mod.evaluations++
 
-			if mod.evaluations%100 == 0 {
+			if mod.evaluations%1000 == 0 {
 				fmt.Printf("Best Fitness: %f\n", mod.BestSolution.Fitness)
 				fmt.Printf("Avg Fitness: %f\n", mod.GetAverageFitness())
 				fmt.Printf("[%d / %d] Population [%d]: ", mod.evaluations, mod.MaxEvaluations, mod.population.Length())
@@ -330,8 +337,57 @@ func (mod *PoolModel) handleEvaluate() {
 	}
 }
 
+func (mod *PoolModel) handleBroadcastedIndividual() {
+	defer close(mod.BroadcastedIndividual)
+
+	for {
+		select {
+		default:
+			in, ok := <-mod.BroadcastedIndividual
+			if !ok {
+				Log.Debugln("mod.BroadcastedIndividual was already closed")
+				return
+			}
+
+			indiv := eaopt.Individual{
+				ID:        in.IndividualID,
+				Fitness:   in.Fitness,
+				Evaluated: in.Evaluated,
+				Genome:    mod.Delegate.DeserializeGenome(in.Genome),
+			}
+
+			if indiv.Fitness < mod.BestSolution.Fitness {
+				Log.Infof("Got new best solution from gossip. Now: %.2f", indiv.Fitness)
+				// TODO: Replace best solution by this one
+			} else {
+				Log.Warn("Got broadcasted solution worse than currest best one. Ignoring")
+			}
+		case <-mod.stop:
+			return
+		}
+	}
+}
+
 func getFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
+func (mod *PoolModel) getCurrentNodeMetadata() NodeMetadata {
+	meta := NodeMetadata{
+		GrpcPort:   int64(mod.grpcPort),
+		GrpcWsPort: int64(mod.grpcPort + 1),
+	}
+
+	if mod.BestSolution.Genome != nil {
+		meta.BestIndividual = &Individual{
+			IndividualID: mod.BestSolution.ID,
+			Evaluated:    mod.BestSolution.Evaluated,
+			Fitness:      mod.BestSolution.Fitness,
+			Genome:       mod.Delegate.SerializeGenome(mod.BestSolution.Genome),
+		}
+	}
+
+	return meta
 }
 
 // GetTotalEvaluations returns the total number of evaluations carried out so far

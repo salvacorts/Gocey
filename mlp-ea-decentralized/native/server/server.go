@@ -62,7 +62,8 @@ func main() {
 	pool := ga.MakePool(
 		100, *grpcPort, *clusterPort,
 		strings.Split(*clusterBoostrap, ","),
-		rand.New(rand.NewSource(7)))
+		//rand.New(rand.NewSource(7)))
+		rand.New(rand.NewSource(time.Now().Unix())))
 
 	// Configure  extra pool settings
 	pool.Delegate = mlp.DelegateImpl{}
@@ -92,7 +93,7 @@ func main() {
 
 	// Configure Logs
 	logrus.SetOutput(os.Stdout)
-	logrus.SetLevel(logrus.ErrorLevel)
+	logrus.SetLevel(logrus.InfoLevel)
 	ga.Log.SetOutput(os.Stdout)
 	ga.Log.SetLevel(logrus.InfoLevel)
 	grpclog.SetLoggerV2(grpclog.NewLoggerV2(ga.Log.Out, ga.Log.Out, ga.Log.Out))

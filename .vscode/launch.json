@@ -13,7 +13,7 @@
         "args": [
             "-grpcPort", "1234",
             "-clusterPort", "6666",
-            "-clusterBoostrap", "127.0.0.1:9999",
+            "-clusterBoostrap", "127.0.0.1:8888",
         ]
     },
     {

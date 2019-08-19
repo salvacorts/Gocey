@@ -3,6 +3,7 @@
 package ga
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"math/rand"
@@ -23,7 +24,11 @@ import (
 // Log is the Pool Logger
 var Log = logrus.New()
 
+// SortFunction gets an array of individuals and sorts them with a given precission
+type SortFunction = func(slice []eaopt.Individual, precission int) []eaopt.Individual
+
 // PoolModel is a pool-based evolutionary algorithm
+// 		TODO: Wrap configuration into ConfigTypes (e.g. ClientConfig, IslandConfig, ModelConfig...)
 type PoolModel struct {
 	Rnd            *rand.Rand
 	KeepBest       bool
@@ -31,8 +36,8 @@ type PoolModel struct {
 	EarlyStop      func(*PoolModel) bool
 
 	// Sorting params
-	SortFunction   func([]eaopt.Individual, float64)
-	SortPrecission float64
+	SortFunc       SortFunction
+	SortPrecission int
 
 	// Callbacks
 	BestCallback       func(*PoolModel)
@@ -50,21 +55,24 @@ type PoolModel struct {
 	popSemaphore semaphore
 
 	// Clients communications
-	evaluations           int
-	wg                    sync.WaitGroup
-	stop                  chan bool
-	shrinkChan            chan bool
-	evaluationChannel     chan eaopt.Individual
-	evaluatedChannel      chan eaopt.Individual
-	BroadcastedIndividual chan Individual
+	evaluations       int
+	wg                sync.WaitGroup
+	stop              chan bool
+	shrinkChan        chan bool
+	evaluationChannel chan eaopt.Individual
+	evaluatedChannel  chan eaopt.Individual
 
 	// Client Settings
 	Delegate   ServiceDelegate
 	grpcServer *grpc.Server
 	grpcPort   int
 
-	// Cluster communications
-	cluster *Cluster
+	// Server communications
+	BroadcastedIndividual chan Individual
+	cluster               *Cluster
+	NMigrate              int
+
+	// Server Settings
 
 	// Stats
 	fitAvg float64
@@ -123,6 +131,7 @@ func (mod *PoolModel) Minimize() {
 	// Wait until all individuals have been evaluated
 	mod.popSemaphore.Acquire(mod.PopSize)
 	go mod.populationGrowControl()
+	go mod.migrationScheduler()
 	mod.popSemaphore.Release(mod.PopSize)
 
 	for mod.evaluations < mod.MaxEvaluations {
@@ -186,7 +195,7 @@ func (mod *PoolModel) selection(nOffstrings, nCandidates int) []eaopt.Individual
 			candidates[j] = r
 		}
 
-		mod.SortFunction(candidates, mod.SortPrecission)
+		candidates = mod.SortFunc(candidates, mod.SortPrecission)
 
 		offsprings[i] = candidates[0].Clone(mod.Rnd)
 		offsprings[i].ID = candidates[0].ID
@@ -261,7 +270,7 @@ func (mod *PoolModel) handleEvaluated() {
 			mod.popSemaphore.Release(1)
 			mod.evaluations++
 
-			if mod.evaluations%1000 == 0 {
+			if mod.evaluations%100 == 0 {
 				fmt.Printf("Best Fitness: %f\n", mod.BestSolution.Fitness)
 				fmt.Printf("Avg Fitness: %f\n", mod.GetAverageFitness())
 				fmt.Printf("[%d / %d] Population [%d]: ", mod.evaluations, mod.MaxEvaluations, mod.population.Length())
@@ -294,7 +303,7 @@ func (mod *PoolModel) handleEvaluate() {
 	defer mod.wg.Done()
 
 	var (
-		listenAddr = "127.0.0.1"
+		listenAddr = "0.0.0.0"
 		nativePort = mod.grpcPort
 		wasmPort   = nativePort + 1
 	)
@@ -373,26 +382,27 @@ func getFunctionName(i interface{}) string {
 }
 
 func (mod *PoolModel) getCurrentNodeMetadata() NodeMetadata {
-	meta := NodeMetadata{
+	return NodeMetadata{
 		GrpcPort:   int64(mod.grpcPort),
 		GrpcWsPort: int64(mod.grpcPort + 1),
 	}
-
-	if mod.BestSolution.Genome != nil {
-		meta.BestIndividual = &Individual{
-			IndividualID: mod.BestSolution.ID,
-			Evaluated:    mod.BestSolution.Evaluated,
-			Fitness:      mod.BestSolution.Fitness,
-			Genome:       mod.Delegate.SerializeGenome(mod.BestSolution.Genome),
-		}
-	}
-
-	return meta
 }
 
 // GetTotalEvaluations returns the total number of evaluations carried out so far
 func (mod *PoolModel) GetTotalEvaluations() int {
 	return mod.evaluations
+}
+
+// GetPopulationSnapshot returns an snapshot of the population at a given moment
+func (mod *PoolModel) GetPopulationSnapshot() []eaopt.Individual {
+	snapMap := mod.population.Snapshot()
+	snap := make([]eaopt.Individual, 0, len(snapMap))
+
+	for _, v := range snapMap {
+		snap = append(snap, v.Object.(eaopt.Individual))
+	}
+
+	return snap
 }
 
 // GetAverageFitness returns the vaerage fitness of the population
@@ -427,7 +437,7 @@ func (mod *PoolModel) populationGrowControl() {
 			i++
 		}
 
-		mod.SortFunction(indivArr, mod.SortPrecission)
+		indivArr = mod.SortFunc(indivArr, mod.SortPrecission)
 
 		for i := mod.PopSize; i < len(indivArr); i++ {
 			mod.population.Remove(indivArr[i])
@@ -440,5 +450,69 @@ func (mod *PoolModel) populationGrowControl() {
 			bestCopy = mod.BestSolution.Clone(mod.Rnd)
 			mod.population.Add(bestCopy)
 		}
+	}
+}
+
+// Migrate individuals to another population at a given interval
+func (mod *PoolModel) migrationScheduler() {
+	defer mod.wg.Done()
+
+	for {
+		time.Sleep(5 * time.Second)
+		var conn *grpc.ClientConn
+		dialed := false
+
+		snap := mod.population.Snapshot()
+		indivArr := make([]eaopt.Individual, 0, len(snap))
+		migrate := make([]Individual, mod.NMigrate)
+
+		for _, item := range snap {
+			indivArr = append(indivArr, item.Object.(eaopt.Individual).Clone(mod.Rnd))
+		}
+
+		// Sort population and get NMIgrate best
+		indivArr = mod.SortFunc(indivArr, mod.SortPrecission)
+		for i := range migrate {
+			migrate[i] = Individual{
+				IndividualID: indivArr[i].ID,
+				Fitness:      indivArr[i].Fitness,
+				Evaluated:    indivArr[i].Evaluated,
+				Genome:       mod.Delegate.SerializeGenome(indivArr[i].Genome),
+			}
+		}
+
+		// Pick a random node from the cluster and dial it
+		members := mod.cluster.GetMembers()
+		for !dialed {
+			remotePeer := members[mod.Rnd.Intn(len(members))]
+			remoteMetadata := NodeMetadata{}
+
+			err := remoteMetadata.Unmarshal(remotePeer.Meta)
+			if err != nil {
+				Log.Errorf("Could not parse Node Metadata on migrationScheduler. %s", err.Error())
+
+			}
+
+			remoteAddr := fmt.Sprintf("%s:%d",
+				remotePeer.Addr.String(), remoteMetadata.GrpcPort)
+
+			conn, err = grpc.Dial(remoteAddr, grpc.WithInsecure())
+			if err != nil {
+				Log.Warnf("Could not dial %s. %s", remoteAddr, err.Error())
+			}
+
+			dialed = true
+		}
+
+		client := NewDistributedEAClient(conn)
+		_, err := client.MigrateIndividuals(context.Background(), &IndividualsBatch{
+			Individuals: migrate,
+		})
+
+		if err != nil {
+			Log.Errorf("could not MigrateIndividuals to %s. %s", conn.Target(), err.Error())
+		}
+
+		conn.Close()
 	}
 }

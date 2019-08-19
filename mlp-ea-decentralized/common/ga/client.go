@@ -105,7 +105,6 @@ func (c *Client) Start() error {
 		}).Infof("Got score: %f", score)
 
 		out := &Individual{
-			ClientID:     c.ID,
 			IndividualID: msg.IndividualID,
 			Evaluated:    true,
 			Fitness:      score,

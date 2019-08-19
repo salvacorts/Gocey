@@ -136,11 +136,5 @@ func (c *eventHandler) NotifyUpdate(node *memberlist.Node) {
 		c.Logger.Errorf("Could not deserialize node metadata. $s", err.Error())
 	}
 
-	if meta.BestIndividual != nil {
-		c.Logger.Infof("Node updated: %s:%d\n\tNew best Individual: %f",
-			node.Addr.String(), node.Port, meta.BestIndividual.Fitness)
-	} else {
-		c.Logger.Infof("Node updated: %s:%d",
-			node.Addr.String(), node.Port)
-	}
+	c.Logger.Infof("Node updated: %s:%d", node.Addr.String(), node.Port)
 }

@@ -68,8 +68,9 @@ func main() {
 	// Configure  extra pool settings
 	pool.Delegate = mlp.DelegateImpl{}
 	pool.KeepBest = false
-	pool.SortPrecission = 0.01
-	pool.SortFunction = mlp.SortByFitnessAndNeurons
+	pool.NMigrate = pool.PopSize / 10
+	pool.SortPrecission = 100
+	pool.SortFunc = mlp.SortByFitnessAndNeurons
 	pool.CrossRate = 0.3
 	pool.MutRate = 0.3
 	pool.MaxEvaluations = 1000000

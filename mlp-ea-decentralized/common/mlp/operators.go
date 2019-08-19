@@ -10,9 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// MLP Implements the eaopt.Genome interface for mlp.MultilayerNetwork
-type MLP MultiLayerNetwork
-
 // NewRandMLP creates a randomly initialized MLP
 func NewRandMLP(rng *rand.Rand) eaopt.Genome {
 	layers := []int{
@@ -268,11 +265,11 @@ func (nn *MultiLayerNetwork) Clone() eaopt.Genome {
 
 // SortByFitnessAndNeurons First sorts by Fitness and then by number of neurons
 // with a precission of n decimals (e.g. 0.01)
-func SortByFitnessAndNeurons(indis []eaopt.Individual, precission float64) {
+func SortByFitnessAndNeurons(indis []eaopt.Individual, precission int) []eaopt.Individual {
 
 	// Round with precission
 	round := func(i float64) float64 {
-		return math.Floor(i*precission) / precission
+		return math.Floor(i*float64(precission)) / float64(precission)
 	}
 
 	// Sort individuals first by fitness and then by number of neurons
@@ -295,4 +292,6 @@ func SortByFitnessAndNeurons(indis []eaopt.Individual, precission float64) {
 
 		return indis[i].Fitness < indis[j].Fitness
 	})
+
+	return indis
 }

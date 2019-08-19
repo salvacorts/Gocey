@@ -41,12 +41,17 @@ message NodeMetadata {
     int64 grpcWsPort = 2;
 }
 
+message IndividualsBatch {
+    repeated Individual individuals = 1 [(gogoproto.nullable) = false];
+}
+
 service DistributedEA {
+    /* Communication for Clients */
     rpc GetProblemDescription(google.protobuf.Empty) returns (ProblemDescription) {}
-
     rpc GetStats(google.protobuf.Empty) returns (Stats) {}
-
     rpc BorrowIndividual(google.protobuf.Empty) returns (Individual) {}
-
     rpc ReturnIndividual(Individual) returns (google.protobuf.Empty) {}
+
+    /* Communication with other Servers */
+    rpc MigrateIndividuals(IndividualsBatch) returns (google.protobuf.Empty) {}
 }

@@ -1,4 +1,4 @@
-package common
+package mlp
 
 import (
 	"io/ioutil"
@@ -10,8 +10,6 @@ import (
 	"github.com/salvacorts/eaopt"
 	mv "github.com/salvacorts/go-perceptron-go/validation"
 
-	//mn "github.com/salvacorts/go-perceptron-go/model/neural"
-	//v "github.com/salvacorts/go-perceptron-go/validation"
 	"github.com/sirupsen/logrus"
 )
 
@@ -409,7 +407,7 @@ func TestSort(t *testing.T) {
 
 	// Before: [A, B, C]
 
-	// TODO: I think I'm overwritting the original individuals
+	// I'm overwritting the original individuals
 	indis = mlp.SortByFitnessAndNeurons(indis, 100)
 
 	// Expected: [B, C, A]

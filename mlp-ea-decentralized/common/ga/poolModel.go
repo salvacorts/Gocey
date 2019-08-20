@@ -379,9 +379,9 @@ func (pool *PoolModel) handleBroadcastedIndividual() {
 
 			if indiv.Fitness < pool.BestSolution.Fitness {
 				Log.Infof("Got new best solution from gossip. Now: %.2f", indiv.Fitness)
-				// TODO: Replace best solution by this one
+				pool.BestSolution = indiv
 			} else {
-				Log.Warn("Got broadcasted solution worse than currest best one. Ignoring")
+				Log.Warn("Got broadcasted solution worse than currest best one. Ignoring...")
 			}
 		case <-pool.stop:
 			return
@@ -488,7 +488,7 @@ func (pool *PoolModel) migrationScheduler() {
 			indivArr = append(indivArr, item.Object.(eaopt.Individual).Clone(pool.Rnd))
 		}
 
-		// Sort population and get NMIgrate best
+		// Sort population and get NMigrate best
 		indivArr = pool.SortFunc(indivArr, pool.SortPrecission)
 		for i := range migrate {
 			migrate[i] = Individual{

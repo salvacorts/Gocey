@@ -108,46 +108,49 @@ func MakePool(popSize int, grpcPort, clusterPort int, boostrapPeers []string, rn
 }
 
 // Minimize runs the algorithm by connecting the pipes
-func (mod *PoolModel) Minimize() {
+func (pool *PoolModel) Minimize() {
 	// Wait for goroutins to end at the end of the function
-	mod.wg.Add(4)
-	defer mod.wg.Wait()
+	defer pool.wg.Wait()
+	defer close(pool.shrinkChan)
+	defer close(pool.evaluationChannel)
+	defer close(pool.evaluatedChannel)
+	defer close(pool.BroadcastedIndividual)
+	defer close(pool.stop)
 
 	// Launch client requests handlers
-	go mod.handleEvaluate()
-	go mod.handleEvaluated()
-	go mod.handleBroadcastedIndividual()
+	go pool.handleEvaluate()
+	go pool.handleEvaluated()
+	go pool.handleBroadcastedIndividual()
 
 	// Launch cluster membership service
-	go mod.cluster.Start(mod.getCurrentNodeMetadata())
+	go pool.cluster.Start(pool.getCurrentNodeMetadata())
 
 	// Append all individuals in the population to the evaluation channel
-	mod.population.Fold(func(indiv eaopt.Individual) bool {
-		mod.evaluationChannel <- indiv
-
+	pool.population.Fold(func(indiv eaopt.Individual) bool {
+		pool.evaluationChannel <- indiv
 		return true
 	})
 
 	// Wait until all individuals have been evaluated
-	mod.popSemaphore.Acquire(mod.PopSize)
-	go mod.populationGrowControl()
-	go mod.migrationScheduler()
-	mod.popSemaphore.Release(mod.PopSize)
+	pool.popSemaphore.Acquire(pool.PopSize)
+	go pool.populationGrowControl()
+	go pool.migrationScheduler()
+	pool.popSemaphore.Release(pool.PopSize)
 
-	for mod.evaluations < mod.MaxEvaluations {
+	for pool.evaluations < pool.MaxEvaluations {
 		var offsprings []eaopt.Individual
 
 		// take here randomly from population
-		offsprings = mod.selection(4, 4)
-		offsprings = mod.crossover(offsprings)
-		offsprings = mod.mutate(offsprings)
+		offsprings = pool.selection(4, 4)
+		offsprings = pool.crossover(offsprings)
+		offsprings = pool.mutate(offsprings)
 
 		// Apply extra operators
 		for i := range offsprings {
-			for _, op := range mod.ExtraOperators {
-				if mod.Rnd.Float64() <= op.Probability {
+			for _, op := range pool.ExtraOperators {
+				if pool.Rnd.Float64() <= op.Probability {
 					offsprings[i].Evaluated = false
-					offsprings[i].Genome = op.Operator(offsprings[i].Genome, mod.Rnd)
+					offsprings[i].Genome = op.Operator(offsprings[i].Genome, pool.Rnd)
 				}
 			}
 		}
@@ -156,22 +159,22 @@ func (mod *PoolModel) Minimize() {
 		// Removing them from the population
 		for i := range offsprings {
 			if !offsprings[i].Evaluated {
-				mod.population.Remove(offsprings[i])
-				mod.evaluationChannel <- offsprings[i]
+				pool.population.Remove(offsprings[i])
+				pool.evaluationChannel <- offsprings[i]
 			} else {
-				mod.popSemaphore.Release(1)
+				pool.popSemaphore.Release(1)
 			}
 		}
 	}
 }
 
 // Binary torunament
-func (mod *PoolModel) selection(nOffstrings, nCandidates int) []eaopt.Individual {
+func (pool *PoolModel) selection(nOffstrings, nCandidates int) []eaopt.Individual {
 	offsprings := make([]eaopt.Individual, nOffstrings)
 
 	// At least nOffsprings shold be available in the population
 	// tu run this operator
-	mod.popSemaphore.Acquire(nOffstrings)
+	pool.popSemaphore.Acquire(nOffstrings)
 
 	for i := range offsprings {
 		alreadySelected := make(map[string]int) // 0 means not selected
@@ -179,13 +182,13 @@ func (mod *PoolModel) selection(nOffstrings, nCandidates int) []eaopt.Individual
 
 		// Search n different candidates
 		for j := range candidates {
-			r, err := mod.population.RandIndividual(mod.Rnd)
+			r, err := pool.population.RandIndividual(pool.Rnd)
 			if err != nil {
 				Log.Fatalf("Error on RandIndividual. %s\n", err.Error())
 			}
 
 			for alreadySelected[r.ID] == 1 {
-				r, err = mod.population.RandIndividual(mod.Rnd)
+				r, err = pool.population.RandIndividual(pool.Rnd)
 				if err != nil {
 					Log.Fatalf("Error on RandIndividual. %s\n", err.Error())
 				}
@@ -195,9 +198,9 @@ func (mod *PoolModel) selection(nOffstrings, nCandidates int) []eaopt.Individual
 			candidates[j] = r
 		}
 
-		candidates = mod.SortFunc(candidates, mod.SortPrecission)
+		candidates = pool.SortFunc(candidates, pool.SortPrecission)
 
-		offsprings[i] = candidates[0].Clone(mod.Rnd)
+		offsprings[i] = candidates[0].Clone(pool.Rnd)
 		offsprings[i].ID = candidates[0].ID
 	}
 
@@ -205,12 +208,12 @@ func (mod *PoolModel) selection(nOffstrings, nCandidates int) []eaopt.Individual
 }
 
 // TODO: Get rid of odd arrays here
-func (mod *PoolModel) crossover(in []eaopt.Individual) []eaopt.Individual {
+func (pool *PoolModel) crossover(in []eaopt.Individual) []eaopt.Individual {
 	for i := 0; i < len(in)-1; i += 2 {
-		if mod.Rnd.Float64() < mod.CrossRate {
-			o1, o2 := in[i].Clone(mod.Rnd), in[i+1].Clone(mod.Rnd)
+		if pool.Rnd.Float64() < pool.CrossRate {
+			o1, o2 := in[i].Clone(pool.Rnd), in[i+1].Clone(pool.Rnd)
 
-			o1.Genome.Crossover(o2.Genome, mod.Rnd)
+			o1.Genome.Crossover(o2.Genome, pool.Rnd)
 			o1.Evaluated = false
 			o2.Evaluated = false
 
@@ -223,103 +226,109 @@ func (mod *PoolModel) crossover(in []eaopt.Individual) []eaopt.Individual {
 	return in
 }
 
-func (mod *PoolModel) mutate(in []eaopt.Individual) []eaopt.Individual {
+func (pool *PoolModel) mutate(in []eaopt.Individual) []eaopt.Individual {
 	for i := range in {
-		if mod.Rnd.Float64() < mod.MutRate {
+		if pool.Rnd.Float64() < pool.MutRate {
 			in[i].Evaluated = false
-			in[i].Genome.Mutate(mod.Rnd)
+			in[i].Genome.Mutate(pool.Rnd)
 		}
 	}
 
 	return in
 }
 
-func (mod *PoolModel) handleEvaluated() {
-	defer mod.wg.Done()
+func (pool *PoolModel) handleEvaluated() {
+	pool.wg.Add(1)
+	defer pool.wg.Done()
+
+	Log.Infoln("handleEvaluated goroutine started")
 
 	for {
 		select {
 		default:
-			o1, ok := <-mod.evaluatedChannel
+			o1, ok := <-pool.evaluatedChannel
 			if !ok {
 				Log.Debugln("in was already closed")
 				return
 			}
 
 			// Update best individual
-			if o1.Fitness < mod.BestSolution.Fitness {
-				mod.BestSolution = o1.Clone(mod.Rnd)
-				mod.BestSolution.ID = o1.ID
+			if o1.Fitness < pool.BestSolution.Fitness {
+				pool.BestSolution = o1.Clone(pool.Rnd)
+				pool.BestSolution.ID = o1.ID
 
 				// Spread the new best solution accross the cluster
 				indiv := Individual{
-					IndividualID: mod.BestSolution.ID,
-					Evaluated:    mod.BestSolution.Evaluated,
-					Fitness:      mod.BestSolution.Fitness,
-					Genome: mod.Delegate.SerializeGenome(
-						mod.BestSolution.Genome),
+					IndividualID: pool.BestSolution.ID,
+					Evaluated:    pool.BestSolution.Evaluated,
+					Fitness:      pool.BestSolution.Fitness,
+					Genome: pool.Delegate.SerializeGenome(
+						pool.BestSolution.Genome),
 				}
-				mod.cluster.BroadcastBestIndividual <- indiv
+				pool.cluster.BroadcastBestIndividual <- indiv
 
-				if mod.BestCallback != nil {
-					mod.BestCallback(mod)
+				if pool.BestCallback != nil {
+					pool.BestCallback(pool)
 				}
 			}
 
-			mod.population.Add(o1)
-			mod.popSemaphore.Release(1)
-			mod.evaluations++
+			pool.population.Add(o1)
+			pool.popSemaphore.Release(1)
+			pool.evaluations++
 
-			if mod.evaluations%100 == 0 {
-				fmt.Printf("Best Fitness: %f\n", mod.BestSolution.Fitness)
-				fmt.Printf("Avg Fitness: %f\n", mod.GetAverageFitness())
-				fmt.Printf("[%d / %d] Population [%d]: ", mod.evaluations, mod.MaxEvaluations, mod.population.Length())
-				mod.population.Fold(func(i eaopt.Individual) bool {
+			if pool.evaluations%100 == 0 {
+				fmt.Printf("Best Fitness: %f\n", pool.BestSolution.Fitness)
+				fmt.Printf("Avg Fitness: %f\n", pool.GetAverageFitness())
+				fmt.Printf("[%d / %d] Population [%d]: ", pool.evaluations, pool.MaxEvaluations, pool.population.Length())
+				pool.population.Fold(func(i eaopt.Individual) bool {
 					fmt.Printf("%.2f, ", i.Fitness)
 					return true
 				})
 				fmt.Printf("\n\n")
 			}
 
-			if mod.evaluations >= mod.MaxEvaluations || mod.EarlyStop(mod) {
+			if pool.evaluations >= pool.MaxEvaluations || pool.EarlyStop(pool) {
 				select {
-				case <-mod.stop:
-					Log.Debugln("mod.stop was already closed")
+				case <-pool.stop:
+					Log.Debugln("pool.stop was already closed")
 				default:
-					if mod.stop != nil {
-						mod.grpcServer.Stop()
-						close(mod.stop)
+					if pool.stop != nil {
+						pool.grpcServer.Stop()
+						close(pool.stop)
 					}
 				}
 			}
 
-		case <-mod.stop:
+		case <-pool.stop:
 			return
 		}
 	}
 }
 
-func (mod *PoolModel) handleEvaluate() {
-	defer mod.wg.Done()
+func (pool *PoolModel) handleEvaluate() {
+	pool.wg.Add(1)
+	defer pool.wg.Done()
+
+	Log.Infoln("handleEvaluate goroutine started")
 
 	var (
 		listenAddr = "0.0.0.0"
-		nativePort = mod.grpcPort
+		nativePort = pool.grpcPort
 		wasmPort   = nativePort + 1
 	)
 
 	mlpServer := &Server{
-		Input:  mod.evaluationChannel,
-		Output: mod.evaluatedChannel,
+		Input:  pool.evaluationChannel,
+		Output: pool.evaluatedChannel,
 		Log:    Log,
 
 		// For stats
-		Pool: mod,
+		Pool: pool,
 	}
 
 	// Start listening on server
-	mod.grpcServer = grpc.NewServer()
-	RegisterDistributedEAServer(mod.grpcServer, mlpServer)
+	pool.grpcServer = grpc.NewServer()
+	RegisterDistributedEAServer(pool.grpcServer, mlpServer)
 
 	// Setup listener for native clients
 	lisNative, err := net.Listen("tcp", fmt.Sprintf("%s:%d", listenAddr, nativePort))
@@ -335,26 +344,29 @@ func (mod *PoolModel) handleEvaluate() {
 	defer lisNative.Close()
 
 	Log.Infof("gRPC Listening on %s", lisNative.Addr().String())
-	go mod.grpcServer.Serve(lisNative)
+	go pool.grpcServer.Serve(lisNative)
 
 	Log.Infof("gRPC-Web Listening on %s:%d", lisWasm.Addr().String(), wasmPort)
-	go mod.grpcServer.Serve(lisWasm)
+	go pool.grpcServer.Serve(lisWasm)
 
 	// Wait until stop is received
 	select {
-	case <-mod.stop:
+	case <-pool.stop:
 	}
 }
 
-func (mod *PoolModel) handleBroadcastedIndividual() {
-	defer close(mod.BroadcastedIndividual)
+func (pool *PoolModel) handleBroadcastedIndividual() {
+	pool.wg.Add(1)
+	defer pool.wg.Done()
+
+	Log.Infoln("handleBroadcastedIndividual goroutine started")
 
 	for {
 		select {
 		default:
-			in, ok := <-mod.BroadcastedIndividual
+			in, ok := <-pool.BroadcastedIndividual
 			if !ok {
-				Log.Debugln("mod.BroadcastedIndividual was already closed")
+				Log.Debugln("pool.BroadcastedIndividual was already closed")
 				return
 			}
 
@@ -362,16 +374,16 @@ func (mod *PoolModel) handleBroadcastedIndividual() {
 				ID:        in.IndividualID,
 				Fitness:   in.Fitness,
 				Evaluated: in.Evaluated,
-				Genome:    mod.Delegate.DeserializeGenome(in.Genome),
+				Genome:    pool.Delegate.DeserializeGenome(in.Genome),
 			}
 
-			if indiv.Fitness < mod.BestSolution.Fitness {
+			if indiv.Fitness < pool.BestSolution.Fitness {
 				Log.Infof("Got new best solution from gossip. Now: %.2f", indiv.Fitness)
 				// TODO: Replace best solution by this one
 			} else {
 				Log.Warn("Got broadcasted solution worse than currest best one. Ignoring")
 			}
-		case <-mod.stop:
+		case <-pool.stop:
 			return
 		}
 	}
@@ -381,21 +393,21 @@ func getFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }
 
-func (mod *PoolModel) getCurrentNodeMetadata() NodeMetadata {
+func (pool *PoolModel) getCurrentNodeMetadata() NodeMetadata {
 	return NodeMetadata{
-		GrpcPort:   int64(mod.grpcPort),
-		GrpcWsPort: int64(mod.grpcPort + 1),
+		GrpcPort:   int64(pool.grpcPort),
+		GrpcWsPort: int64(pool.grpcPort + 1),
 	}
 }
 
 // GetTotalEvaluations returns the total number of evaluations carried out so far
-func (mod *PoolModel) GetTotalEvaluations() int {
-	return mod.evaluations
+func (pool *PoolModel) GetTotalEvaluations() int {
+	return pool.evaluations
 }
 
 // GetPopulationSnapshot returns an snapshot of the population at a given moment
-func (mod *PoolModel) GetPopulationSnapshot() []eaopt.Individual {
-	snapMap := mod.population.Snapshot()
+func (pool *PoolModel) GetPopulationSnapshot() []eaopt.Individual {
+	snapMap := pool.population.Snapshot()
 	snap := make([]eaopt.Individual, 0, len(snapMap))
 
 	for _, v := range snapMap {
@@ -406,11 +418,11 @@ func (mod *PoolModel) GetPopulationSnapshot() []eaopt.Individual {
 }
 
 // GetAverageFitness returns the vaerage fitness of the population
-func (mod *PoolModel) GetAverageFitness() float64 {
+func (pool *PoolModel) GetAverageFitness() float64 {
 	totalFitness := 0.0
 	items := 0
 
-	mod.population.Fold(func(indiv eaopt.Individual) bool {
+	pool.population.Fold(func(indiv eaopt.Individual) bool {
 		totalFitness += indiv.Fitness
 		items++
 		return true
@@ -421,13 +433,16 @@ func (mod *PoolModel) GetAverageFitness() float64 {
 
 // Reduce the population size to a fixed preset number by elimiating the
 // individuals with lower fitness
-func (mod *PoolModel) populationGrowControl() {
-	defer mod.wg.Done()
+func (pool *PoolModel) populationGrowControl() {
+	pool.wg.Add(1)
+	defer pool.wg.Done()
+
+	Log.Infoln("populationGrowControl goroutine started")
 
 	for {
 		time.Sleep(1 * time.Second)
 
-		snap := mod.population.Snapshot()
+		snap := pool.population.Snapshot()
 		indivArr := make([]eaopt.Individual, len(snap))
 		var bestCopy eaopt.Individual
 		i := 0
@@ -437,54 +452,57 @@ func (mod *PoolModel) populationGrowControl() {
 			i++
 		}
 
-		indivArr = mod.SortFunc(indivArr, mod.SortPrecission)
+		indivArr = pool.SortFunc(indivArr, pool.SortPrecission)
 
-		for i := mod.PopSize; i < len(indivArr); i++ {
-			mod.population.Remove(indivArr[i])
+		for i := pool.PopSize; i < len(indivArr); i++ {
+			pool.population.Remove(indivArr[i])
 		}
 
 		// Replace the remaining worst one by the best one so far
-		if len(indivArr) >= mod.PopSize {
-			mod.population.Remove(indivArr[mod.PopSize-1])
+		if len(indivArr) >= pool.PopSize {
+			pool.population.Remove(indivArr[pool.PopSize-1])
 
-			bestCopy = mod.BestSolution.Clone(mod.Rnd)
-			mod.population.Add(bestCopy)
+			bestCopy = pool.BestSolution.Clone(pool.Rnd)
+			pool.population.Add(bestCopy)
 		}
 	}
 }
 
 // Migrate individuals to another population at a given interval
-func (mod *PoolModel) migrationScheduler() {
-	defer mod.wg.Done()
+func (pool *PoolModel) migrationScheduler() {
+	pool.wg.Add(1)
+	defer pool.wg.Done()
+
+	Log.Infoln("migrationScheduler goroutine started")
 
 	for {
 		time.Sleep(5 * time.Second)
 		var conn *grpc.ClientConn
 		dialed := false
 
-		snap := mod.population.Snapshot()
+		snap := pool.population.Snapshot()
 		indivArr := make([]eaopt.Individual, 0, len(snap))
-		migrate := make([]Individual, mod.NMigrate)
+		migrate := make([]Individual, pool.NMigrate)
 
 		for _, item := range snap {
-			indivArr = append(indivArr, item.Object.(eaopt.Individual).Clone(mod.Rnd))
+			indivArr = append(indivArr, item.Object.(eaopt.Individual).Clone(pool.Rnd))
 		}
 
 		// Sort population and get NMIgrate best
-		indivArr = mod.SortFunc(indivArr, mod.SortPrecission)
+		indivArr = pool.SortFunc(indivArr, pool.SortPrecission)
 		for i := range migrate {
 			migrate[i] = Individual{
 				IndividualID: indivArr[i].ID,
 				Fitness:      indivArr[i].Fitness,
 				Evaluated:    indivArr[i].Evaluated,
-				Genome:       mod.Delegate.SerializeGenome(indivArr[i].Genome),
+				Genome:       pool.Delegate.SerializeGenome(indivArr[i].Genome),
 			}
 		}
 
 		// Pick a random node from the cluster and dial it
-		members := mod.cluster.GetMembers()
+		members := pool.cluster.GetMembers()
 		for !dialed {
-			remotePeer := members[mod.Rnd.Intn(len(members))]
+			remotePeer := members[pool.Rnd.Intn(len(members))]
 			remoteMetadata := NodeMetadata{}
 
 			err := remoteMetadata.Unmarshal(remotePeer.Meta)

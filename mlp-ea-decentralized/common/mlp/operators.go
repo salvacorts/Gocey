@@ -265,7 +265,7 @@ func (nn *MultiLayerNetwork) Clone() eaopt.Genome {
 
 // SortByFitnessAndNeurons First sorts by Fitness and then by number of neurons
 // with a precission of n decimals (e.g. 0.01)
-func SortByFitnessAndNeurons(indis []eaopt.Individual, precission int) []eaopt.Individual {
+func SortByFitnessAndNeurons(slice []eaopt.Individual, precission int) []eaopt.Individual {
 
 	// Round with precission
 	round := func(i float64) float64 {
@@ -273,25 +273,25 @@ func SortByFitnessAndNeurons(indis []eaopt.Individual, precission int) []eaopt.I
 	}
 
 	// Sort individuals first by fitness and then by number of neurons
-	sort.Slice(indis, func(i, j int) bool {
+	sort.Slice(slice, func(i, j int) bool {
 
-		if round(indis[i].Fitness) == round(indis[j].Fitness) {
+		if round(slice[i].Fitness) == round(slice[j].Fitness) {
 			neuronsI := 0
 			neuronsJ := 0
 
-			for _, l := range indis[i].Genome.(*MultiLayerNetwork).NeuralLayers {
+			for _, l := range slice[i].Genome.(*MultiLayerNetwork).NeuralLayers {
 				neuronsI += int(l.Length)
 			}
 
-			for _, l := range indis[j].Genome.(*MultiLayerNetwork).NeuralLayers {
+			for _, l := range slice[j].Genome.(*MultiLayerNetwork).NeuralLayers {
 				neuronsJ += int(l.Length)
 			}
 
 			return neuronsI < neuronsJ
 		}
 
-		return indis[i].Fitness < indis[j].Fitness
+		return slice[i].Fitness < slice[j].Fitness
 	})
 
-	return indis
+	return slice
 }

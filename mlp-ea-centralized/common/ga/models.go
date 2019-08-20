@@ -13,7 +13,7 @@ func SortByFitnessAndNeurons(indis []eaopt.Individual) {
 
 	// Round with precission
 	round := func(i float64) float64 {
-		return math.Floor(i*Precission) / Precission
+		return math.Floor(i*float64(Precission)) / float64(Precission)
 	}
 
 	// Sort individuals first by fitness and then by number of neurons

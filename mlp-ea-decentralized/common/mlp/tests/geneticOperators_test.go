@@ -7,6 +7,7 @@ import (
 
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-decentralized/common/mlp"
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
+	"github.com/salvacorts/eaopt"
 	mv "github.com/salvacorts/go-perceptron-go/validation"
 
 	//mn "github.com/salvacorts/go-perceptron-go/model/neural"
@@ -367,5 +368,56 @@ func TestCrossover(t *testing.T) {
 	if o1.(*mlp.MultiLayerNetwork).NeuralLayers[1].NeuronUnits[1].Weights[0] !=
 		nn2.NeuralLayers[1].NeuronUnits[1].Weights[0] {
 		t.Errorf("Failed to create second offspring")
+	}
+}
+
+func TestSort(t *testing.T) {
+	indis := []eaopt.Individual{
+		eaopt.Individual{ // A: 99 fitness, 15 neurons
+			ID:      "A",
+			Fitness: 99.991,
+			Genome: &mlp.MultiLayerNetwork{
+				NeuralLayers: []mlp.NeuralLayer{ // 15 neurons
+					mlp.NeuralLayer{Length: 5},
+					mlp.NeuralLayer{Length: 10},
+				},
+			},
+		},
+
+		eaopt.Individual{ // B: 10 fitness, 5 neurons
+			ID:      "B",
+			Fitness: 10.0,
+			Genome: &mlp.MultiLayerNetwork{
+				NeuralLayers: []mlp.NeuralLayer{ // 15 neurons
+					mlp.NeuralLayer{Length: 2},
+					mlp.NeuralLayer{Length: 3},
+				},
+			},
+		},
+
+		eaopt.Individual{ // C: 99 fitness, 10 neurons
+			ID:      "C",
+			Fitness: 99.999,
+			Genome: &mlp.MultiLayerNetwork{
+				NeuralLayers: []mlp.NeuralLayer{ // 10 neurons
+					mlp.NeuralLayer{Length: 5},
+					mlp.NeuralLayer{Length: 5},
+				},
+			},
+		},
+	}
+
+	// Before: [A, B, C]
+
+	// TODO: I think I'm overwritting the original individuals
+	indis = mlp.SortByFitnessAndNeurons(indis, 100)
+
+	// Expected: [B, C, A]
+	expected := []string{"B", "C", "A"}
+
+	for i, in := range indis {
+		if in.ID != expected[i] {
+			t.Errorf("Not sorted properly. Expected (%s), got (%s)", expected[i], in.ID)
+		}
 	}
 }

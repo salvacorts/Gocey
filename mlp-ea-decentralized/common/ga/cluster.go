@@ -21,6 +21,7 @@ type Cluster struct {
 	ReceiveBestIndividual   chan Individual
 	list                    *memberlist.Memberlist
 	delegate                *nodeDelegate
+	stop                    chan bool
 }
 
 type eventHandler struct {
@@ -35,6 +36,7 @@ func MakeCluster(listenPort int, buffSize int, newBestIndividualChan chan Indivi
 		BoostrapPeers:           boostrapPeers,
 		BroadcastBestIndividual: make(chan Individual, buffSize),
 		ReceiveBestIndividual:   newBestIndividualChan,
+		stop:                    make(chan bool),
 	}
 
 	// If a logger is provided, set it instead of the logrus standard one
@@ -48,17 +50,30 @@ func MakeCluster(listenPort int, buffSize int, newBestIndividualChan chan Indivi
 // PrintMembers of the p2p cluster
 func (c *Cluster) PrintMembers() {
 	for {
-		time.Sleep(5 * time.Second)
+		select {
+		default:
+			time.Sleep(5 * time.Second)
 
-		nodes := c.list.Members()
-		str := fmt.Sprintf("Nodes - %d:\n", len(nodes))
+			nodes := c.list.Members()
+			str := fmt.Sprintf("Nodes - %d:\n", len(nodes))
 
-		for _, node := range nodes {
-			str += fmt.Sprintf("%s:%d - %s\n", node.Addr.String(), node.Port, node.Name)
+			for _, node := range nodes {
+				str += fmt.Sprintf("%s:%d - %s\n", node.Addr.String(), node.Port, node.Name)
+			}
+
+			c.Logger.Info(str)
+
+		case <-c.stop:
+			return
 		}
 
-		c.Logger.Info(str)
 	}
+}
+
+// Shutdown the cluster node
+func (c *Cluster) Shutdown() {
+	c.Logger.Info("Shutting down cluster")
+	close(c.stop)
 }
 
 // Start creates a new node with metadata for this process and joins a existing cluster
@@ -100,10 +115,16 @@ func (c *Cluster) Start(metadata NodeMetadata) {
 	//go c.updateMetadataHandler()
 	go c.PrintMembers()
 
-	// TODO: Add stop channel and select
 	for {
-		indiv := <-c.BroadcastBestIndividual
-		c.delegate.Broadcast(indiv)
+		select {
+		default:
+			indiv := <-c.BroadcastBestIndividual
+			c.delegate.Broadcast(indiv)
+
+		case <-c.stop:
+			return
+		}
+
 	}
 }
 

@@ -128,6 +128,7 @@ func (pool *PoolModel) Minimize() {
 
 	// Launch cluster membership service
 	go pool.cluster.Start(pool.getCurrentNodeMetadata())
+	defer pool.cluster.Shutdown()
 
 	// Append all individuals in the population to the evaluation channel
 	pool.population.Fold(func(indiv eaopt.Individual) bool {
@@ -390,6 +391,7 @@ func (pool *PoolModel) handleBroadcastedIndividual() {
 			} else {
 				Log.Warn("Got broadcasted solution worse than currest best one. Ignoring...")
 			}
+
 		case <-pool.stop:
 			return
 		}
@@ -447,31 +449,38 @@ func (pool *PoolModel) populationGrowControl() {
 	Log.Infoln("populationGrowControl goroutine started")
 
 	for {
-		time.Sleep(1 * time.Second)
+		select {
+		default:
+			time.Sleep(1 * time.Second)
 
-		snap := pool.population.Snapshot()
-		indivArr := make([]eaopt.Individual, len(snap))
-		var bestCopy eaopt.Individual
-		i := 0
+			snap := pool.population.Snapshot()
+			indivArr := make([]eaopt.Individual, len(snap))
+			var bestCopy eaopt.Individual
+			i := 0
 
-		for _, item := range snap {
-			indivArr[i] = item.Object.(eaopt.Individual)
-			i++
+			for _, item := range snap {
+				indivArr[i] = item.Object.(eaopt.Individual)
+				i++
+			}
+
+			indivArr = pool.SortFunc(indivArr, pool.SortPrecission)
+
+			for i := pool.PopSize; i < len(indivArr); i++ {
+				pool.population.Remove(indivArr[i])
+			}
+
+			// Replace the remaining worst one by the best one so far
+			if len(indivArr) >= pool.PopSize {
+				pool.population.Remove(indivArr[pool.PopSize-1])
+
+				bestCopy = pool.BestSolution.Clone(pool.Rnd)
+				pool.population.Add(bestCopy)
+			}
+
+		case <-pool.stop:
+			return
 		}
 
-		indivArr = pool.SortFunc(indivArr, pool.SortPrecission)
-
-		for i := pool.PopSize; i < len(indivArr); i++ {
-			pool.population.Remove(indivArr[i])
-		}
-
-		// Replace the remaining worst one by the best one so far
-		if len(indivArr) >= pool.PopSize {
-			pool.population.Remove(indivArr[pool.PopSize-1])
-
-			bestCopy = pool.BestSolution.Clone(pool.Rnd)
-			pool.population.Add(bestCopy)
-		}
 	}
 }
 
@@ -483,61 +492,68 @@ func (pool *PoolModel) migrationScheduler() {
 	Log.Infoln("migrationScheduler goroutine started")
 
 	for {
-		time.Sleep(5 * time.Second)
-		var conn *grpc.ClientConn
-		dialed := false
+		select {
+		default:
+			time.Sleep(5 * time.Second)
+			var conn *grpc.ClientConn
+			dialed := false
 
-		snap := pool.population.Snapshot()
-		indivArr := make([]eaopt.Individual, 0, len(snap))
-		migrate := make([]Individual, pool.NMigrate)
+			snap := pool.population.Snapshot()
+			indivArr := make([]eaopt.Individual, 0, len(snap))
+			migrate := make([]Individual, pool.NMigrate)
 
-		for _, item := range snap {
-			indivArr = append(indivArr, item.Object.(eaopt.Individual).Clone(pool.Rnd))
-		}
-
-		// Sort population and get NMigrate best
-		indivArr = pool.SortFunc(indivArr, pool.SortPrecission)
-		for i := range migrate {
-			migrate[i] = Individual{
-				IndividualID: indivArr[i].ID,
-				Fitness:      indivArr[i].Fitness,
-				Evaluated:    indivArr[i].Evaluated,
-				Genome:       pool.Delegate.SerializeGenome(indivArr[i].Genome),
+			for _, item := range snap {
+				indivArr = append(indivArr, item.Object.(eaopt.Individual).Clone(pool.Rnd))
 			}
-		}
 
-		// Pick a random node from the cluster and dial it
-		members := pool.cluster.GetMembers()
-		for !dialed {
-			remotePeer := members[pool.Rnd.Intn(len(members))]
-			remoteMetadata := NodeMetadata{}
+			// Sort population and get NMigrate best
+			indivArr = pool.SortFunc(indivArr, pool.SortPrecission)
+			for i := range migrate {
+				migrate[i] = Individual{
+					IndividualID: indivArr[i].ID,
+					Fitness:      indivArr[i].Fitness,
+					Evaluated:    indivArr[i].Evaluated,
+					Genome:       pool.Delegate.SerializeGenome(indivArr[i].Genome),
+				}
+			}
 
-			err := remoteMetadata.Unmarshal(remotePeer.Meta)
+			// Pick a random node from the cluster and dial it
+			members := pool.cluster.GetMembers()
+			for !dialed {
+				remotePeer := members[pool.Rnd.Intn(len(members))]
+				remoteMetadata := NodeMetadata{}
+
+				err := remoteMetadata.Unmarshal(remotePeer.Meta)
+				if err != nil {
+					Log.Errorf("Could not parse Node Metadata on migrationScheduler. %s", err.Error())
+
+				}
+
+				remoteAddr := fmt.Sprintf("%s:%d",
+					remotePeer.Addr.String(), remoteMetadata.GrpcPort)
+
+				conn, err = grpc.Dial(remoteAddr, grpc.WithInsecure())
+				if err != nil {
+					Log.Warnf("Could not dial %s. %s", remoteAddr, err.Error())
+				}
+
+				dialed = true
+			}
+
+			client := NewDistributedEAClient(conn)
+			_, err := client.MigrateIndividuals(context.Background(), &IndividualsBatch{
+				Individuals: migrate,
+			})
+
 			if err != nil {
-				Log.Errorf("Could not parse Node Metadata on migrationScheduler. %s", err.Error())
-
+				Log.Errorf("could not MigrateIndividuals to %s. %s", conn.Target(), err.Error())
 			}
 
-			remoteAddr := fmt.Sprintf("%s:%d",
-				remotePeer.Addr.String(), remoteMetadata.GrpcPort)
+			conn.Close()
 
-			conn, err = grpc.Dial(remoteAddr, grpc.WithInsecure())
-			if err != nil {
-				Log.Warnf("Could not dial %s. %s", remoteAddr, err.Error())
-			}
-
-			dialed = true
+		case <-pool.stop:
+			return
 		}
 
-		client := NewDistributedEAClient(conn)
-		_, err := client.MigrateIndividuals(context.Background(), &IndividualsBatch{
-			Individuals: migrate,
-		})
-
-		if err != nil {
-			Log.Errorf("could not MigrateIndividuals to %s. %s", conn.Target(), err.Error())
-		}
-
-		conn.Close()
 	}
 }

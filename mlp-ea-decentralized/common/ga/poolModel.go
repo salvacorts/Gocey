@@ -292,7 +292,8 @@ func (pool *PoolModel) handleEvaluated() {
 				fmt.Printf("\n\n")
 			}
 
-			if pool.evaluations >= pool.MaxEvaluations || pool.EarlyStop(pool) {
+			if pool.evaluations >= pool.MaxEvaluations ||
+				(pool.EarlyStop != nil && pool.EarlyStop(pool)) {
 				select {
 				case <-pool.stop:
 					Log.Debugln("pool.stop was already closed")
@@ -334,6 +335,7 @@ func (pool *PoolModel) handleEvaluate() {
 	// Start listening on server
 	pool.grpcServer = grpc.NewServer()
 	RegisterDistributedEAServer(pool.grpcServer, mlpServer)
+	defer pool.grpcServer.Stop()
 
 	// Setup listener for native clients
 	lisNative, err := net.Listen("tcp", fmt.Sprintf("%s:%d", listenAddr, nativePort))

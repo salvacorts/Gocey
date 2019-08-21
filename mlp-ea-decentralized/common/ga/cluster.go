@@ -133,7 +133,7 @@ func (c *eventHandler) NotifyUpdate(node *memberlist.Node) {
 	meta := NodeMetadata{}
 	err := meta.Unmarshal(node.Meta)
 	if err != nil {
-		c.Logger.Errorf("Could not deserialize node metadata. $s", err.Error())
+		c.Logger.Errorf("Could not deserialize node metadata. %s", err.Error())
 	}
 
 	c.Logger.Infof("Node updated: %s:%d", node.Addr.String(), node.Port)

@@ -4,12 +4,10 @@ import (
 	"testing"
 
 	"github.com/salvacorts/eaopt"
-
-	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-decentralized/common/ga"
 )
 
 func TestMake(t *testing.T) {
-	population := ga.MakePopulation()
+	population := MakePopulation()
 
 	if population.Length() > 0 {
 		t.Errorf("Population is not empty at initialization")
@@ -17,7 +15,7 @@ func TestMake(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	population := ga.MakePopulation()
+	population := MakePopulation()
 
 	indiv := eaopt.Individual{
 		ID:        "A",
@@ -60,7 +58,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
-	population := ga.MakePopulation()
+	population := MakePopulation()
 
 	indiv := eaopt.Individual{
 		ID:        "A",
@@ -85,7 +83,7 @@ func TestRemove(t *testing.T) {
 }
 
 func TestFold(t *testing.T) {
-	population := ga.MakePopulation()
+	population := MakePopulation()
 
 	indiv1 := eaopt.Individual{
 		ID:        "A",

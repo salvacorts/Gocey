@@ -63,7 +63,8 @@ func main() {
 		100, *grpcPort, *clusterPort,
 		strings.Split(*clusterBoostrap, ","),
 		//rand.New(rand.NewSource(7)))
-		rand.New(rand.NewSource(time.Now().Unix())))
+		rand.New(rand.NewSource(time.Now().Unix())),
+		mlp.NewRandMLP)
 
 	// Configure  extra pool settings
 	pool.Delegate = mlp.DelegateImpl{}

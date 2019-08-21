@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-decentralized/common/mlp"
 	"github.com/sirupsen/logrus"
 
 	"github.com/dennwc/dom/net/ws"
@@ -26,6 +25,9 @@ var Log = logrus.New()
 
 // SortFunction gets an array of individuals and sorts them with a given precission
 type SortFunction = func(slice []eaopt.Individual, precission int) []eaopt.Individual
+
+// GenomeGenerator is a function that creates genomes randomly initializaed
+type GenomeGenerator = func(*rand.Rand) eaopt.Genome
 
 // PoolModel is a pool-based evolutionary algorithm
 // 		TODO: Wrap configuration into ConfigTypes (e.g. ClientConfig, IslandConfig, ModelConfig...)
@@ -79,7 +81,9 @@ type PoolModel struct {
 }
 
 // MakePool Creates a new pool with default configuration
-func MakePool(popSize int, grpcPort, clusterPort int, boostrapPeers []string, rnd *rand.Rand) *PoolModel {
+func MakePool(
+	popSize int, grpcPort, clusterPort int, boostrapPeers []string,
+	rnd *rand.Rand, generator GenomeGenerator) *PoolModel {
 	pool := &PoolModel{
 		Rnd:                   rnd,
 		PopSize:               popSize,
@@ -100,7 +104,7 @@ func MakePool(popSize int, grpcPort, clusterPort int, boostrapPeers []string, rn
 	pool.cluster.Logger.SetLevel(logrus.DebugLevel)
 
 	for i := 0; i < pool.PopSize; i++ {
-		indi := eaopt.NewIndividual(mlp.NewRandMLP(pool.Rnd), pool.Rnd)
+		indi := eaopt.NewIndividual(generator(pool.Rnd), pool.Rnd)
 		pool.population.Add(indi)
 	}
 
@@ -140,6 +144,10 @@ func (pool *PoolModel) Minimize() {
 	for pool.evaluations < pool.MaxEvaluations {
 		var offsprings []eaopt.Individual
 
+		// At least nOffsprings shold be available in the population
+		// tu run this operator
+		pool.popSemaphore.Acquire(4)
+
 		// take here randomly from population
 		offsprings = pool.selection(4, 4)
 		offsprings = pool.crossover(offsprings)
@@ -168,13 +176,9 @@ func (pool *PoolModel) Minimize() {
 	}
 }
 
-// Binary torunament
+// Selection selects nOffstrings on a tournamnet of nCandidates
 func (pool *PoolModel) selection(nOffstrings, nCandidates int) []eaopt.Individual {
 	offsprings := make([]eaopt.Individual, nOffstrings)
-
-	// At least nOffsprings shold be available in the population
-	// tu run this operator
-	pool.popSemaphore.Acquire(nOffstrings)
 
 	for i := range offsprings {
 		alreadySelected := make(map[string]int) // 0 means not selected
@@ -209,6 +213,7 @@ func (pool *PoolModel) selection(nOffstrings, nCandidates int) []eaopt.Individua
 
 // TODO: Get rid of odd arrays here
 func (pool *PoolModel) crossover(in []eaopt.Individual) []eaopt.Individual {
+	offsprings := make([]eaopt.Individual, len(in))
 	for i := 0; i < len(in)-1; i += 2 {
 		if pool.Rnd.Float64() < pool.CrossRate {
 			o1, o2 := in[i].Clone(pool.Rnd), in[i+1].Clone(pool.Rnd)
@@ -218,12 +223,12 @@ func (pool *PoolModel) crossover(in []eaopt.Individual) []eaopt.Individual {
 			o2.Evaluated = false
 
 			// Add keep best here? No, since you would have to evaluate the offsprings
-			in[i] = o1
-			in[i+1] = o2
+			offsprings[i] = o1
+			offsprings[i+1] = o2
 		}
 	}
 
-	return in
+	return offsprings
 }
 
 func (pool *PoolModel) mutate(in []eaopt.Individual) []eaopt.Individual {

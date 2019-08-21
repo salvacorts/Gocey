@@ -102,6 +102,7 @@ func (c *Cluster) Start(metadata NodeMetadata) {
 
 	c.list = list
 	c.Logger.Infof("Local cluster node: %s", c.list.LocalNode().String())
+	defer c.list.Shutdown()
 
 	// Try to join a cluster with bootstap nodes.
 	// If it fails, be an standalone node waiting for incoming connections

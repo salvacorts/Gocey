@@ -8,8 +8,8 @@ import (
 func TestCluster(t *testing.T) {
 	recvBestChan := make(chan Individual, 100)
 
-	peer1 := MakeCluster(9998, 100, nil, []string{})
-	peer2 := MakeCluster(9999, 100, recvBestChan, []string{"127.0.0.1:9998"})
+	peer1 := MakeCluster(6666, 100, nil, []string{})
+	peer2 := MakeCluster(6667, 100, recvBestChan, []string{"127.0.0.1:6666"})
 
 	// Launch First peer and wait for it to be ready
 	go peer1.Start(NodeMetadata{})

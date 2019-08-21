@@ -343,13 +343,14 @@ func (pool *PoolModel) handleEvaluate() {
 	if err != nil {
 		Log.Fatalf("Failed to listen: %v", err)
 	}
+	defer lisNative.Close()
 
 	// Setup listener for wasm clients based on websockets
 	lisWasm, err := ws.Listen(fmt.Sprintf("ws://%s:%d", listenAddr, wasmPort), nil)
 	if err != nil {
 		panic(err)
 	}
-	defer lisNative.Close()
+	defer lisWasm.Close()
 
 	Log.Infof("gRPC Listening on %s", lisNative.Addr().String())
 	go pool.grpcServer.Serve(lisNative)
@@ -360,6 +361,7 @@ func (pool *PoolModel) handleEvaluate() {
 	// Wait until stop is received
 	select {
 	case <-pool.stop:
+		return
 	}
 }
 

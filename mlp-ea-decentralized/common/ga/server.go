@@ -129,7 +129,7 @@ func (s *Server) MigrateIndividuals(ctx context.Context, batch *IndividualsBatch
 
 	// Check if the worst from the population are
 	// actually better than the bests from the candidates
-	i, j, k := len(population)-len(candidates)-1, 0, 0
+	i, j, k := len(population)-len(candidates), 0, 0
 	for k < s.Pool.NMigrate {
 		if population[i].Fitness < candidates[j].Fitness {
 			toAppend[k] = population[i]
@@ -154,7 +154,7 @@ func (s *Server) MigrateIndividuals(ctx context.Context, batch *IndividualsBatch
 
 	// Remove the worst ones from the population that were
 	// not better than the candidates
-	for a := i; i < len(candidates); i++ {
+	for a := i; a < len(population); a++ {
 		s.Pool.population.Remove(population[a])
 	}
 

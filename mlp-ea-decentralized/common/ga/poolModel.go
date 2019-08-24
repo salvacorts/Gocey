@@ -161,8 +161,8 @@ func (pool *PoolModel) Minimize() {
 		for i := range offsprings {
 			for _, op := range pool.ExtraOperators {
 				if pool.Rnd.Float64() <= op.Probability {
-					offsprings[i].Evaluated = false
 					offsprings[i].Genome = op.Operator(offsprings[i].Genome, pool.Rnd)
+					offsprings[i].Evaluated = false
 				}
 			}
 		}
@@ -215,7 +215,6 @@ func (pool *PoolModel) selection(nOffstrings, nCandidates int) []eaopt.Individua
 	return offsprings
 }
 
-// TODO: Get rid of odd arrays here
 func (pool *PoolModel) crossover(in []eaopt.Individual) []eaopt.Individual {
 	offsprings := make([]eaopt.Individual, len(in))
 	for i := 0; i < len(in)-1; i += 2 {
@@ -241,8 +240,8 @@ func (pool *PoolModel) crossover(in []eaopt.Individual) []eaopt.Individual {
 func (pool *PoolModel) mutate(in []eaopt.Individual) []eaopt.Individual {
 	for i := range in {
 		if pool.Rnd.Float64() < pool.MutRate {
-			in[i].Evaluated = false
 			in[i].Genome.Mutate(pool.Rnd)
+			in[i].Evaluated = false
 		}
 	}
 
@@ -513,16 +512,8 @@ func (pool *PoolModel) migrationScheduler() {
 			var conn *grpc.ClientConn
 			dialed := false
 
-			snap := pool.population.Snapshot()
-			indivArr := make([]eaopt.Individual, 0, len(snap))
+			indivArr := pool.selection(pool.NMigrate, 4)
 			migrate := make([]Individual, pool.NMigrate)
-
-			for _, item := range snap {
-				indivArr = append(indivArr, item.Object.(eaopt.Individual).Clone(pool.Rnd))
-			}
-
-			// Sort population and get NMigrate best
-			indivArr = pool.SortFunc(indivArr, pool.SortPrecission)
 			for i := range migrate {
 				migrate[i] = Individual{
 					IndividualID: indivArr[i].ID,

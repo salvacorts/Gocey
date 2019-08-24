@@ -34,6 +34,7 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 	ga.NPops = 1
 	ga.PopSize = popSize
 	ga.Model = getGenerationalModelTournament(4)
+	//ga.Model = getSteadyStateModel()
 	ga.Callback = func(ga *eaopt.GA) {
 		Log.WithFields(logrus.Fields{
 			"level":               "info",
@@ -50,8 +51,8 @@ func TrainMLP(csvdata string) (mn.MultiLayerNetwork, float64, error) {
 
 	// Configure MLP
 	Config = MLPConfig{
-		Epochs:      10,
-		Folds:       1,
+		Epochs:      50,
+		Folds:       5,
 		Classes:     &mapped,
 		TrainingSet: &train,
 		FactoryCfg: MLPFactoryConfig{

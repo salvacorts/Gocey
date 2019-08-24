@@ -22,7 +22,7 @@ func main() {
 	logrus.SetLevel(logrus.ErrorLevel)
 	ga.Log.SetOutput(os.Stdout)
 	ga.Log.SetLevel(logrus.InfoLevel)
-	grpclog.SetLoggerV2(grpclog.NewLoggerV2(ga.Log.Out, ga.Log.Out, ga.Log.Out))
+	grpclog.SetLoggerV2(grpclog.NewLoggerV2(nil, nil, ga.Log.Out))
 
 	_, score, err := ga.TrainMLP(string(fileContent))
 	if err != nil {

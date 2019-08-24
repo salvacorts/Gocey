@@ -31,7 +31,6 @@ func NewRandMLP(rng *rand.Rand) eaopt.Genome {
 }
 
 // Evaluate a MLP by getting its accuracy
-// TODO: Compare also number of neurons
 func (nn *MultiLayerNetwork) Evaluate() (float64, error) {
 	copy := nn.Clone().(*MultiLayerNetwork)
 

@@ -38,16 +38,16 @@ func NewRandMLP(rng *rand.Rand) eaopt.Genome {
 func (mlp *MLP) Evaluate() (float64, error) {
 	copy := mlp.Clone().(*MLP)
 
-	train, validation := mv.TrainTestPatternSplit(*Config.TrainingSet, 0.8, 1)
+	scores := mv.MLPKFoldValidation(
+		(*mn.MultiLayerNetwork)(copy), *Config.TrainingSet, Config.Epochs, Config.Folds, 1, *Config.Classes)
 
-	mn.MLPTrain((*mn.MultiLayerNetwork)(copy), train, *Config.Classes,
-		Config.Epochs, true)
+	mean := 0.0
+	for _, s := range scores {
+		mean += s
+	}
+	mean /= float64(len(scores))
 
-	predictions := utils.PredictN((*mn.MultiLayerNetwork)(copy), validation)
-	predictionsR := utils.RoundPredictions(predictions)
-	_, acc := utils.AccuracyN(predictionsR, validation)
-
-	return 100 - acc, nil
+	return 100 - mean, nil
 }
 
 // Mutate modifies the weights of certain neurons, at random, depending on the application rate.

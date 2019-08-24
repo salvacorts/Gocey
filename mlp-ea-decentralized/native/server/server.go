@@ -47,7 +47,7 @@ func main() {
 		Classes:     mapped,
 		TrainingSet: train,
 		TrainEpochs: 100,
-		MutateRate:  0.3,
+		MutateRate:  1,
 		FactoryCfg: mlp.MLPFactoryConfig{
 			InputLayers:      len(patterns[0].Features),
 			OutputLayers:     len(mapped),
@@ -80,7 +80,7 @@ func main() {
 		eaopt.ExtraOperator{Operator: mlp.AddNeuron, Probability: 0.3},
 		eaopt.ExtraOperator{Operator: mlp.RemoveNeuron, Probability: 0.15},
 		eaopt.ExtraOperator{Operator: mlp.SubstituteNeuron, Probability: 0.15},
-		eaopt.ExtraOperator{Operator: mlp.Train, Probability: 0.3},
+		eaopt.ExtraOperator{Operator: mlp.Train, Probability: 0.5},
 	}
 	pool.BestCallback = func(pool *ga.PoolModel) {
 		logrus.WithFields(logrus.Fields{

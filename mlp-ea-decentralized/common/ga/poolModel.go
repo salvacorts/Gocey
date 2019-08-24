@@ -74,15 +74,13 @@ type PoolModel struct {
 	cluster               *Cluster
 	NMigrate              int
 
-	// Server Settings
-
 	// Stats
-	fitAvg float64
+	metricsServer *MetricsServer
 }
 
 // MakePool Creates a new pool with default configuration
 func MakePool(
-	popSize int, grpcPort, clusterPort int, boostrapPeers []string,
+	popSize int, grpcPort, clusterPort, metricsPort int, boostrapPeers []string,
 	rnd *rand.Rand, generator GenomeGenerator) *PoolModel {
 	pool := &PoolModel{
 		Rnd:                   rnd,
@@ -99,6 +97,8 @@ func MakePool(
 			Fitness: math.Inf(1),
 		},
 	}
+
+	pool.metricsServer = MakeMetricsServer(pool, fmt.Sprintf("0.0.0.0:%d", metricsPort), logrus.New())
 
 	pool.cluster = MakeCluster(clusterPort, popSize, pool.BroadcastedIndividual, boostrapPeers, logrus.New())
 	pool.cluster.Logger.SetLevel(logrus.DebugLevel)
@@ -129,6 +129,9 @@ func (pool *PoolModel) Minimize() {
 	// Launch cluster membership service
 	go pool.cluster.Start(pool.getCurrentNodeMetadata())
 	defer pool.cluster.Shutdown()
+
+	// Launch metrics server
+	go pool.metricsServer.Start()
 
 	// Append all individuals in the population to the evaluation channel
 	pool.population.Fold(func(indiv eaopt.Individual) bool {
@@ -226,6 +229,9 @@ func (pool *PoolModel) crossover(in []eaopt.Individual) []eaopt.Individual {
 			// Add keep best here? No, since you would have to evaluate the offsprings
 			offsprings[i] = o1
 			offsprings[i+1] = o2
+		} else {
+			offsprings[i] = in[i]
+			offsprings[i+1] = in[i+1]
 		}
 	}
 
@@ -523,6 +529,16 @@ func (pool *PoolModel) migrationScheduler() {
 			members := pool.cluster.GetMembers()
 			for !dialed {
 				remotePeer := members[pool.Rnd.Intn(len(members))]
+				if remotePeer == pool.cluster.list.LocalNode() {
+
+					// If it is only me in the cluster, break and wait
+					if pool.cluster.GetNumNodes() == 1 {
+						break
+					}
+
+					continue
+				}
+
 				remoteMetadata := NodeMetadata{}
 
 				err := remoteMetadata.Unmarshal(remotePeer.Meta)
@@ -540,6 +556,10 @@ func (pool *PoolModel) migrationScheduler() {
 				}
 
 				dialed = true
+			}
+
+			if !dialed {
+				continue
 			}
 
 			client := NewDistributedEAClient(conn)

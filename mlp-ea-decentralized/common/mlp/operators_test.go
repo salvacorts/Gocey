@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-decentralized/common/mlp"
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 	"github.com/salvacorts/eaopt"
 	mv "github.com/salvacorts/go-perceptron-go/validation"
@@ -14,7 +13,7 @@ import (
 )
 
 func TestEvaluate(t *testing.T) {
-	filename := "../../../../datasets/glass.csv"
+	filename := "../../../datasets/glass.csv"
 	fileContent, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Errorf("Cannot open %s. Error: %s", filename, err.Error())
@@ -26,66 +25,66 @@ func TestEvaluate(t *testing.T) {
 	train, _ := mv.TrainTestPatternSplit(patterns, 0.8, 1)
 
 	// Congigure MLP
-	mlp.Config = mlp.MLPConfig{
+	Config = MLPConfig{
 		Epochs:      1,
 		Folds:       1,
 		Classes:     mapped,
 		TrainingSet: train,
-		FactoryCfg: mlp.MLPFactoryConfig{
+		FactoryCfg: MLPFactoryConfig{
 			InputLayers:      len(patterns[0].Features),
 			OutputLayers:     len(mapped),
 			MinHiddenNeurons: 2,
 			MaxHiddenNeurons: 20,
-			Tfunc:            mlp.TransferFunc_SIGMOIDAL,
+			Tfunc:            TransferFunc_SIGMOIDAL,
 			MaxLR:            0.3,
 			MinLR:            0.01,
 		},
 	}
 
 	rnd := rand.New(rand.NewSource(7))
-	genome := mlp.NewRandMLP(rnd)
+	genome := NewRandMLP(rnd)
 
-	originalNN := genome.(*mlp.MultiLayerNetwork)
+	originalNN := genome.(*MultiLayerNetwork)
 
 	score, err := genome.Evaluate()
 	if err != nil {
 		t.Errorf("Error evaluating MLP: %s", err.Error())
 	}
 
-	if originalNN.LRate != genome.(*mlp.MultiLayerNetwork).LRate {
+	if originalNN.LRate != genome.(*MultiLayerNetwork).LRate {
 		t.Error("LRate after evaluation is different from original LRate")
 	}
 
 	for i, layer := range originalNN.NeuralLayers {
-		if layer.Length != genome.(*mlp.MultiLayerNetwork).NeuralLayers[i].Length {
+		if layer.Length != genome.(*MultiLayerNetwork).NeuralLayers[i].Length {
 			t.Errorf("In layer %d, Length (%d) after evaluation is different from original Length (%d)",
-				i, genome.(*mlp.MultiLayerNetwork).NeuralLayers[i].Length, layer.Length)
+				i, genome.(*MultiLayerNetwork).NeuralLayers[i].Length, layer.Length)
 		}
 
 		for j, neuron := range layer.NeuronUnits {
-			if neuron.Bias != genome.(*mlp.MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Bias {
+			if neuron.Bias != genome.(*MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Bias {
 				t.Errorf("Bias for neuron [%d, %d] after evaluation is different from original one", i, j)
 			}
 
-			if neuron.Delta != genome.(*mlp.MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Delta {
+			if neuron.Delta != genome.(*MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Delta {
 				t.Errorf("Delta for neuron [%d, %d] after evaluation is different from original one", i, j)
 			}
 
-			if neuron.Lrate != genome.(*mlp.MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Lrate {
+			if neuron.Lrate != genome.(*MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Lrate {
 				t.Errorf("Lrate for neuron [%d, %d] after evaluation is different from original one", i, j)
 			}
 
-			if neuron.Value != genome.(*mlp.MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Value {
+			if neuron.Value != genome.(*MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Value {
 				t.Errorf("Value for neuron [%d, %d] after evaluation is different from original one", i, j)
 			}
 
-			if len(neuron.Weights) != len(genome.(*mlp.MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Weights) {
+			if len(neuron.Weights) != len(genome.(*MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Weights) {
 				t.Errorf("Weights for neuron [%d, %d] after evaluation (%d) have different length from original one ()%d",
-					i, j, len(neuron.Weights), len(genome.(*mlp.MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Weights))
+					i, j, len(neuron.Weights), len(genome.(*MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Weights))
 			}
 
 			for k, weight := range neuron.Weights {
-				if weight != genome.(*mlp.MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Weights[k] {
+				if weight != genome.(*MultiLayerNetwork).NeuralLayers[i].NeuronUnits[j].Weights[k] {
 					t.Errorf("Weight %d at neuron [%d, %d] after evaluation is different from original one", k, i, j)
 				}
 			}
@@ -99,7 +98,7 @@ func TestEvaluate(t *testing.T) {
 }
 
 func TestTrain(t *testing.T) {
-	filename := "../../../../datasets/glass.csv"
+	filename := "../../../datasets/glass.csv"
 	fileContent, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Errorf("Cannot open %s. Error: %s", filename, err.Error())
@@ -111,31 +110,31 @@ func TestTrain(t *testing.T) {
 	train, _ := mv.TrainTestPatternSplit(patterns, 0.8, 1)
 
 	// Congigure MLP
-	mlp.Config = mlp.MLPConfig{
+	Config = MLPConfig{
 		Epochs:      1,
 		Folds:       1,
 		Classes:     mapped,
 		TrainingSet: train,
-		FactoryCfg: mlp.MLPFactoryConfig{
+		FactoryCfg: MLPFactoryConfig{
 			InputLayers:      len(patterns[0].Features),
 			OutputLayers:     len(mapped),
 			MinHiddenNeurons: 2,
 			MaxHiddenNeurons: 20,
-			Tfunc:            mlp.TransferFunc_SIGMOIDAL,
+			Tfunc:            TransferFunc_SIGMOIDAL,
 			MaxLR:            0.3,
 			MinLR:            0.01,
 		},
 	}
 
 	rnd := rand.New(rand.NewSource(7))
-	originalNN := mlp.NewRandMLP(rnd)
+	originalNN := NewRandMLP(rnd)
 
 	score, err := originalNN.Evaluate()
 	if err != nil {
 		t.Errorf("Error evaluating MLP: %s", err.Error())
 	}
 
-	new := mlp.Train(originalNN, rnd)
+	new := Train(originalNN, rnd)
 
 	newScore, err := new.Evaluate()
 	if err != nil {
@@ -154,17 +153,17 @@ func TestTrain(t *testing.T) {
 func TestMutate(t *testing.T) {
 	logrus.SetLevel(logrus.ErrorLevel)
 
-	nn := mlp.MultiLayerNetwork{}
+	nn := MultiLayerNetwork{}
 	rgn := rand.New(rand.NewSource(7))
 	size := 5
 	nWeights := 3
 
 	nn.LRate = 0.5
-	nn.NeuralLayers = make([]mlp.NeuralLayer, 3)
+	nn.NeuralLayers = make([]NeuralLayer, 3)
 	nn.NeuralLayers[1].Length = int64(size)
-	nn.NeuralLayers[1].NeuronUnits = make([]mlp.NeuronUnit, size)
+	nn.NeuralLayers[1].NeuronUnits = make([]NeuronUnit, size)
 	nn.NeuralLayers[2].Length = 2
-	nn.NeuralLayers[2].NeuronUnits = make([]mlp.NeuronUnit, 2)
+	nn.NeuralLayers[2].NeuronUnits = make([]NeuronUnit, 2)
 
 	for i := 0; i < size; i++ {
 		nn.NeuralLayers[1].NeuronUnits[i].Weights = make([]float64, nWeights)
@@ -175,9 +174,9 @@ func TestMutate(t *testing.T) {
 		}
 	}
 
-	original := nn.Clone().(*mlp.MultiLayerNetwork)
+	original := nn.Clone().(*MultiLayerNetwork)
 
-	mlp.Config.MutateRate = 1
+	Config.MutateRate = 1
 	nn.Mutate(rgn)
 
 	equals := true
@@ -218,21 +217,21 @@ func TestMutate(t *testing.T) {
 func TestAddNeuron(t *testing.T) {
 	logrus.SetLevel(logrus.ErrorLevel)
 
-	nn := mlp.MultiLayerNetwork{}
+	nn := MultiLayerNetwork{}
 	rgn := rand.New(rand.NewSource(7))
 	size := 5
 
-	nn.NeuralLayers = make([]mlp.NeuralLayer, 3)
+	nn.NeuralLayers = make([]NeuralLayer, 3)
 	nn.NeuralLayers[1].Length = int64(size)
-	nn.NeuralLayers[1].NeuronUnits = make([]mlp.NeuronUnit, size)
+	nn.NeuralLayers[1].NeuronUnits = make([]NeuronUnit, size)
 	nn.NeuralLayers[2].Length = 2
-	nn.NeuralLayers[2].NeuronUnits = make([]mlp.NeuronUnit, 2)
+	nn.NeuralLayers[2].NeuronUnits = make([]NeuronUnit, 2)
 
 	for i := 0; i < 2; i++ {
 		nn.NeuralLayers[2].NeuronUnits[i].Weights = make([]float64, size)
 	}
 
-	mlp.AddNeuron(&nn, rgn)
+	AddNeuron(&nn, rgn)
 
 	if nn.NeuralLayers[1].Length != int64(size+1) {
 		t.Errorf("Length attr does not match to expected. Got (%d), expected (%d)",
@@ -254,21 +253,21 @@ func TestAddNeuron(t *testing.T) {
 func TestRemoveNeuron(t *testing.T) {
 	logrus.SetLevel(logrus.ErrorLevel)
 
-	nn := mlp.MultiLayerNetwork{}
+	nn := MultiLayerNetwork{}
 	rgn := rand.New(rand.NewSource(7))
 	size := 5
 
-	nn.NeuralLayers = make([]mlp.NeuralLayer, 3)
+	nn.NeuralLayers = make([]NeuralLayer, 3)
 	nn.NeuralLayers[1].Length = int64(size)
-	nn.NeuralLayers[1].NeuronUnits = make([]mlp.NeuronUnit, size)
+	nn.NeuralLayers[1].NeuronUnits = make([]NeuronUnit, size)
 	nn.NeuralLayers[2].Length = 2
-	nn.NeuralLayers[2].NeuronUnits = make([]mlp.NeuronUnit, 2)
+	nn.NeuralLayers[2].NeuronUnits = make([]NeuronUnit, 2)
 
 	for i := 0; i < 2; i++ {
 		nn.NeuralLayers[2].NeuronUnits[i].Weights = make([]float64, size)
 	}
 
-	mlp.RemoveNeuron(&nn, rgn)
+	RemoveNeuron(&nn, rgn)
 
 	if nn.NeuralLayers[1].Length != int64(size-1) {
 		t.Errorf("Length attr does not match to expected. Got (%d), expected (%d)",
@@ -290,21 +289,21 @@ func TestRemoveNeuron(t *testing.T) {
 func TestClone(t *testing.T) {
 	logrus.SetLevel(logrus.ErrorLevel)
 
-	nn := mlp.MultiLayerNetwork{}
+	nn := MultiLayerNetwork{}
 	size := 5
 
-	nn.NeuralLayers = make([]mlp.NeuralLayer, 3)
+	nn.NeuralLayers = make([]NeuralLayer, 3)
 	nn.NeuralLayers[1].Length = int64(size)
-	nn.NeuralLayers[1].NeuronUnits = make([]mlp.NeuronUnit, size)
+	nn.NeuralLayers[1].NeuronUnits = make([]NeuronUnit, size)
 	nn.NeuralLayers[2].Length = 2
-	nn.NeuralLayers[2].NeuronUnits = make([]mlp.NeuronUnit, 2)
+	nn.NeuralLayers[2].NeuronUnits = make([]NeuronUnit, 2)
 
 	for i := 0; i < 2; i++ {
 		nn.NeuralLayers[2].NeuronUnits[i].Weights =
 			[]float64{1.0, 2.0, 3.0}
 	}
 
-	new := nn.Clone().(*mlp.MultiLayerNetwork)
+	new := nn.Clone().(*MultiLayerNetwork)
 
 	new.NeuralLayers[2].Length = -7
 
@@ -331,24 +330,24 @@ func TestCrossover(t *testing.T) {
 	// It will swap indexes 1 andf 3
 
 	size1 := 7
-	nn1 := mlp.MultiLayerNetwork{}
-	nn1.NeuralLayers = make([]mlp.NeuralLayer, 3)
+	nn1 := MultiLayerNetwork{}
+	nn1.NeuralLayers = make([]NeuralLayer, 3)
 	nn1.NeuralLayers[1].Length = int64(size1)
-	nn1.NeuralLayers[1].NeuronUnits = make([]mlp.NeuronUnit, size1)
+	nn1.NeuralLayers[1].NeuronUnits = make([]NeuronUnit, size1)
 	nn1.NeuralLayers[2].Length = 2
-	nn1.NeuralLayers[2].NeuronUnits = make([]mlp.NeuronUnit, 2)
+	nn1.NeuralLayers[2].NeuronUnits = make([]NeuronUnit, 2)
 	for i := 0; i < size1; i++ {
 		nn1.NeuralLayers[1].NeuronUnits[i].Weights =
 			[]float64{0}
 	}
 
 	size2 := 10
-	nn2 := mlp.MultiLayerNetwork{}
-	nn2.NeuralLayers = make([]mlp.NeuralLayer, 3)
+	nn2 := MultiLayerNetwork{}
+	nn2.NeuralLayers = make([]NeuralLayer, 3)
 	nn2.NeuralLayers[1].Length = int64(size2)
-	nn2.NeuralLayers[1].NeuronUnits = make([]mlp.NeuronUnit, size2)
+	nn2.NeuralLayers[1].NeuronUnits = make([]NeuronUnit, size2)
 	nn2.NeuralLayers[2].Length = 2
-	nn2.NeuralLayers[2].NeuronUnits = make([]mlp.NeuronUnit, 2)
+	nn2.NeuralLayers[2].NeuronUnits = make([]NeuronUnit, 2)
 	for i := 0; i < size2; i++ {
 		nn2.NeuralLayers[1].NeuronUnits[i].Weights =
 			[]float64{1}
@@ -358,12 +357,12 @@ func TestCrossover(t *testing.T) {
 
 	o1.Crossover(o2, rng)
 
-	if o2.(*mlp.MultiLayerNetwork).NeuralLayers[1].NeuronUnits[1].Weights[0] !=
+	if o2.(*MultiLayerNetwork).NeuralLayers[1].NeuronUnits[1].Weights[0] !=
 		nn1.NeuralLayers[1].NeuronUnits[1].Weights[0] {
 		t.Errorf("Failed to create first offspring")
 	}
 
-	if o1.(*mlp.MultiLayerNetwork).NeuralLayers[1].NeuronUnits[1].Weights[0] !=
+	if o1.(*MultiLayerNetwork).NeuralLayers[1].NeuronUnits[1].Weights[0] !=
 		nn2.NeuralLayers[1].NeuronUnits[1].Weights[0] {
 		t.Errorf("Failed to create second offspring")
 	}
@@ -374,10 +373,10 @@ func TestSort(t *testing.T) {
 		eaopt.Individual{ // A: 99 fitness, 15 neurons
 			ID:      "A",
 			Fitness: 99.991,
-			Genome: &mlp.MultiLayerNetwork{
-				NeuralLayers: []mlp.NeuralLayer{ // 15 neurons
-					mlp.NeuralLayer{Length: 5},
-					mlp.NeuralLayer{Length: 10},
+			Genome: &MultiLayerNetwork{
+				NeuralLayers: []NeuralLayer{ // 15 neurons
+					NeuralLayer{Length: 5},
+					NeuralLayer{Length: 10},
 				},
 			},
 		},
@@ -385,10 +384,10 @@ func TestSort(t *testing.T) {
 		eaopt.Individual{ // B: 10 fitness, 5 neurons
 			ID:      "B",
 			Fitness: 10.0,
-			Genome: &mlp.MultiLayerNetwork{
-				NeuralLayers: []mlp.NeuralLayer{ // 15 neurons
-					mlp.NeuralLayer{Length: 2},
-					mlp.NeuralLayer{Length: 3},
+			Genome: &MultiLayerNetwork{
+				NeuralLayers: []NeuralLayer{ // 15 neurons
+					NeuralLayer{Length: 2},
+					NeuralLayer{Length: 3},
 				},
 			},
 		},
@@ -396,10 +395,10 @@ func TestSort(t *testing.T) {
 		eaopt.Individual{ // C: 99 fitness, 10 neurons
 			ID:      "C",
 			Fitness: 99.999,
-			Genome: &mlp.MultiLayerNetwork{
-				NeuralLayers: []mlp.NeuralLayer{ // 10 neurons
-					mlp.NeuralLayer{Length: 5},
-					mlp.NeuralLayer{Length: 5},
+			Genome: &MultiLayerNetwork{
+				NeuralLayers: []NeuralLayer{ // 10 neurons
+					NeuralLayer{Length: 5},
+					NeuralLayer{Length: 5},
 				},
 			},
 		},
@@ -408,7 +407,7 @@ func TestSort(t *testing.T) {
 	// Before: [A, B, C]
 
 	// I'm overwritting the original individuals
-	indis = mlp.SortByFitnessAndNeurons(indis, 100)
+	indis = SortByFitnessAndNeurons(indis, 100)
 
 	// Expected: [B, C, A]
 	expected := []string{"B", "C", "A"}

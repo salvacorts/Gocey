@@ -5,14 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-decentralized/common/mlp"
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 	mv "github.com/salvacorts/go-perceptron-go/validation"
 	"github.com/sirupsen/logrus"
 )
 
 func TestSerializeProblemDescription(t *testing.T) {
-	filename := "../../../../datasets/glass.csv"
+	filename := "../../../datasets/glass.csv"
 	fileContent, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Errorf("Cannot open %s. Error: %s", filename, err.Error())
@@ -23,26 +22,26 @@ func TestSerializeProblemDescription(t *testing.T) {
 	var patterns, _, mapped = utils.LoadPatternsFromCSV(string(fileContent))
 	train, _ := mv.TrainTestPatternSplit(patterns, 0.8, 1)
 
-	mlp.Config.Epochs = 7
-	mlp.Config.Folds = 7
-	mlp.Config.TrainingSet = train
-	mlp.Config.Classes = mapped
+	Config.Epochs = 7
+	Config.Folds = 7
+	Config.TrainingSet = train
+	Config.Classes = mapped
 
-	delegate := mlp.DelegateImpl{}
+	delegate := DelegateImpl{}
 	buff := delegate.SerializeProblemDescription()
 
-	desc := mlp.MLPDescription{}
+	desc := MLPDescription{}
 	err = desc.Unmarshal(buff)
 	if err != nil {
 		t.Errorf("Could not deserialize problem description. %s", err.Error())
 	}
 
-	if desc.Epochs != int64(mlp.Config.Epochs) {
-		t.Errorf("Epochs do not match: %d vs %d.", desc.Epochs, mlp.Config.Epochs)
+	if desc.Epochs != int64(Config.Epochs) {
+		t.Errorf("Epochs do not match: %d vs %d.", desc.Epochs, Config.Epochs)
 	}
 
-	if desc.Folds != int64(mlp.Config.Folds) {
-		t.Errorf("Folds do not match: %d vs %d.", desc.Folds, mlp.Config.Folds)
+	if desc.Folds != int64(Config.Folds) {
+		t.Errorf("Folds do not match: %d vs %d.", desc.Folds, Config.Folds)
 	}
 
 	trainStr := utils.PatternsToCSV(train)
@@ -50,13 +49,13 @@ func TestSerializeProblemDescription(t *testing.T) {
 		t.Errorf("Training datasets do not match. Len: %d vs %d", len(desc.TrainDataset), len(trainStr))
 	}
 
-	if !equalString(desc.Classes, mlp.Config.Classes) {
-		t.Errorf("Classes do not match:\n\tA: %v\n\tB: %v", desc.Classes, mlp.Config.Classes)
+	if !equalString(desc.Classes, Config.Classes) {
+		t.Errorf("Classes do not match:\n\tA: %v\n\tB: %v", desc.Classes, Config.Classes)
 	}
 }
 
 func TestDeserializeProblemDescription(t *testing.T) {
-	filename := "../../../../datasets/glass.csv"
+	filename := "../../../datasets/glass.csv"
 	fileContent, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Errorf("Cannot open %s. Error: %s", filename, err.Error())
@@ -67,7 +66,7 @@ func TestDeserializeProblemDescription(t *testing.T) {
 	var patterns, _, mapped = utils.LoadPatternsFromCSV(string(fileContent))
 	train, _ := mv.TrainTestPatternSplit(patterns, 0.8, 1)
 
-	desc := mlp.MLPDescription{
+	desc := MLPDescription{
 		Epochs:       7,
 		Folds:        7,
 		TrainDataset: utils.PatternsToCSV(train),
@@ -79,15 +78,15 @@ func TestDeserializeProblemDescription(t *testing.T) {
 		t.Errorf("Could not serialize problem description. %s", err.Error())
 	}
 
-	delegate := mlp.DelegateImpl{}
+	delegate := DelegateImpl{}
 	delegate.DeserializeProblemDescription(buff)
 
-	if desc.Epochs != int64(mlp.Config.Epochs) {
-		t.Errorf("Epochs do not match: %d vs %d.", desc.Epochs, mlp.Config.Epochs)
+	if desc.Epochs != int64(Config.Epochs) {
+		t.Errorf("Epochs do not match: %d vs %d.", desc.Epochs, Config.Epochs)
 	}
 
-	if desc.Folds != int64(mlp.Config.Folds) {
-		t.Errorf("Folds do not match: %d vs %d.", desc.Folds, mlp.Config.Folds)
+	if desc.Folds != int64(Config.Folds) {
+		t.Errorf("Folds do not match: %d vs %d.", desc.Folds, Config.Folds)
 	}
 
 	trainStr := utils.PatternsToCSV(train)
@@ -95,21 +94,21 @@ func TestDeserializeProblemDescription(t *testing.T) {
 		t.Errorf("Training datasets do not match. Len: %d vs %d", len(desc.TrainDataset), len(trainStr))
 	}
 
-	if !equalString(desc.Classes, mlp.Config.Classes) {
-		t.Errorf("Classes do not match:\n\tA: %v\n\tB: %v", desc.Classes, mlp.Config.Classes)
+	if !equalString(desc.Classes, Config.Classes) {
+		t.Errorf("Classes do not match:\n\tA: %v\n\tB: %v", desc.Classes, Config.Classes)
 	}
 }
 
 func TestSerializeGenome(t *testing.T) {
-	nn := &mlp.MultiLayerNetwork{}
+	nn := &MultiLayerNetwork{}
 	size := 5
 
 	nn.LRate = 0.5
-	nn.NeuralLayers = make([]mlp.NeuralLayer, 3)
+	nn.NeuralLayers = make([]NeuralLayer, 3)
 	nn.NeuralLayers[1].Length = int64(size)
-	nn.NeuralLayers[1].NeuronUnits = make([]mlp.NeuronUnit, size)
+	nn.NeuralLayers[1].NeuronUnits = make([]NeuronUnit, size)
 	nn.NeuralLayers[2].Length = 2
-	nn.NeuralLayers[2].NeuronUnits = make([]mlp.NeuronUnit, 2)
+	nn.NeuralLayers[2].NeuronUnits = make([]NeuronUnit, 2)
 	nn.NeuralLayers[1].NeuronUnits[1].Bias = 0.1
 	nn.NeuralLayers[1].NeuronUnits[1].Value = 0.2
 	nn.NeuralLayers[1].NeuronUnits[1].Lrate = 0.3
@@ -118,10 +117,10 @@ func TestSerializeGenome(t *testing.T) {
 	nn.NeuralLayers[1].NeuronUnits[1].Weights[0] = 0.01
 	nn.NeuralLayers[1].NeuronUnits[1].Weights[1] = 0.02
 
-	delegate := mlp.DelegateImpl{}
+	delegate := DelegateImpl{}
 	buff := delegate.SerializeGenome(nn)
 
-	nn2 := mlp.MultiLayerNetwork{}
+	nn2 := MultiLayerNetwork{}
 	err := nn2.Unmarshal(buff)
 	if err != nil {
 		t.Errorf("Could not unmarshall serialized genome. %s", err.Error())
@@ -181,15 +180,15 @@ func TestSerializeGenome(t *testing.T) {
 
 // DeserializeGenome deserialized buff to a MLP
 func TestDeserializeGenome(t *testing.T) {
-	nn := &mlp.MultiLayerNetwork{}
+	nn := &MultiLayerNetwork{}
 	size := 5
 
 	nn.LRate = 0.5
-	nn.NeuralLayers = make([]mlp.NeuralLayer, 3)
+	nn.NeuralLayers = make([]NeuralLayer, 3)
 	nn.NeuralLayers[1].Length = int64(size)
-	nn.NeuralLayers[1].NeuronUnits = make([]mlp.NeuronUnit, size)
+	nn.NeuralLayers[1].NeuronUnits = make([]NeuronUnit, size)
 	nn.NeuralLayers[2].Length = 2
-	nn.NeuralLayers[2].NeuronUnits = make([]mlp.NeuronUnit, 2)
+	nn.NeuralLayers[2].NeuronUnits = make([]NeuronUnit, 2)
 	nn.NeuralLayers[1].NeuronUnits[1].Bias = 0.1
 	nn.NeuralLayers[1].NeuronUnits[1].Value = 0.2
 	nn.NeuralLayers[1].NeuronUnits[1].Lrate = 0.3
@@ -203,9 +202,9 @@ func TestDeserializeGenome(t *testing.T) {
 		t.Errorf("Could not serialize MultiLayerNetwork. %s", err.Error())
 	}
 
-	delegate := mlp.DelegateImpl{}
+	delegate := DelegateImpl{}
 	genome := delegate.DeserializeGenome(buff)
-	nn2 := genome.(*mlp.MultiLayerNetwork)
+	nn2 := genome.(*MultiLayerNetwork)
 
 	if nn.LRate != nn2.LRate {
 		t.Errorf("LRate does not match")

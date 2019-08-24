@@ -118,7 +118,10 @@ func (nn *MultiLayerNetwork) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 // and increments it, if neccesary, by adding new hidden units
 // TODO: 2 veces probabilidad de eliminar y poner limite de tamaño
 func AddNeuron(in eaopt.Genome, rng *rand.Rand) eaopt.Genome {
-	out := in.(*MultiLayerNetwork)
+	out, ok := in.(*MultiLayerNetwork)
+	if !ok {
+		Log.Fatalf("Could not cast genome to *MultiLayerNetwork")
+	}
 
 	indexNL := utils.RandIntInRange(1, len(out.NeuralLayers)-1, rng)
 	newNeuron := NeuronUnit{}

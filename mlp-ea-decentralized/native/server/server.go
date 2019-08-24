@@ -21,6 +21,7 @@ import (
 // TODO: Append here GA and Pool params
 var (
 	// Opened ports
+	metricsPort     = flag.Int("metricsPort", 2222, "Port for prometheus metrics")
 	grpcPort        = flag.Int("grpcPort", 3117, "Port to listen for grpc requests")
 	clusterPort     = flag.Int("clusterPort", 9999, "Listening port for gossip protocol")
 	clusterBoostrap = flag.String("clusterBoostrap", "", "comma separated list of peers already ina  cluster to join")
@@ -60,7 +61,7 @@ func main() {
 
 	// Create Pool
 	pool := ga.MakePool(
-		100, *grpcPort, *clusterPort,
+		100, *grpcPort, *clusterPort, *metricsPort,
 		strings.Split(*clusterBoostrap, ","),
 		//rand.New(rand.NewSource(7)))
 		rand.New(rand.NewSource(time.Now().Unix())),

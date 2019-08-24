@@ -16,7 +16,8 @@ func TestHandleEvaluate(t *testing.T) {
 
 	mlp.Config.FactoryCfg.MinHiddenNeurons = 2
 	mlp.Config.FactoryCfg.MaxHiddenNeurons = 4
-	pool := MakePool(size, 9999, 9998, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	pool := MakePool(size, 9999, 9998, 9997, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	defer pool.metricsServer.Shutdown()
 
 	go pool.handleEvaluate()
 
@@ -36,7 +37,8 @@ func TestHandleEvaluated(t *testing.T) {
 
 	mlp.Config.FactoryCfg.MinHiddenNeurons = 2
 	mlp.Config.FactoryCfg.MaxHiddenNeurons = 4
-	pool := MakePool(size, 9999, 9998, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	pool := MakePool(size, 9999, 9998, 9997, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	defer pool.metricsServer.Shutdown()
 	pool.MaxEvaluations = 100
 	pool.Delegate = mlp.DelegateImpl{}
 
@@ -79,7 +81,8 @@ func TestHandleBroadcastedIndividual(t *testing.T) {
 
 	mlp.Config.FactoryCfg.MinHiddenNeurons = 2
 	mlp.Config.FactoryCfg.MaxHiddenNeurons = 4
-	pool := MakePool(size, 9999, 9998, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	pool := MakePool(size, 9999, 9998, 9997, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	defer pool.metricsServer.Shutdown()
 	pool.MaxEvaluations = 100
 	pool.Delegate = mlp.DelegateImpl{}
 
@@ -139,7 +142,8 @@ func TestPopulationGrowControl(t *testing.T) {
 
 	mlp.Config.FactoryCfg.MinHiddenNeurons = 2
 	mlp.Config.FactoryCfg.MaxHiddenNeurons = 4
-	pool := MakePool(size, 9999, 9998, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	pool := MakePool(size, 9999, 9998, 9997, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	defer pool.metricsServer.Shutdown()
 	pool.SortFunc = mlp.SortByFitnessAndNeurons
 
 	// All individuals to fitness = 1.0

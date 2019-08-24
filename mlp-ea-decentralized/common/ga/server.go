@@ -108,7 +108,9 @@ func (s *Server) MigrateIndividuals(ctx context.Context, batch *IndividualsBatch
 	for _, in := range batch.Individuals {
 		scores = append(scores, in.Fitness)
 	}
+
 	s.Log.Infof("Got migration of %d individuals: %v", len(batch.Individuals), scores)
+	s.Pool.metricsServer.IncomingMigrationsCount.Inc()
 
 	for i, indiv := range batch.Individuals {
 		candidates[i] = eaopt.Individual{

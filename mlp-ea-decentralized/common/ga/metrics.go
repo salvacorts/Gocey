@@ -8,6 +8,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -15,6 +16,18 @@ import (
 type MetricsServer struct {
 	log  *logrus.Logger
 	addr string
+
+	EvaluationsCount        prometheus.Counter
+	OutgoingMigrationsCount prometheus.Counter
+	IncomingMigrationsCount prometheus.Counter
+	OutgoingBroadcasts      prometheus.Counter
+	IncomingBroadcasts      prometheus.Counter
+	BestFitnessGauge        prometheus.Gauge
+
+	popSizeCollector     prometheus.Collector
+	avgFitnessCollector  prometheus.Collector
+	stdFitnessCollector  prometheus.Collector
+	clusterSizeCollector prometheus.Collector
 }
 
 // MakeMetricsServer starts a metric server listening on addr
@@ -25,20 +38,43 @@ func MakeMetricsServer(pool *PoolModel, addr string, logger *logrus.Logger) *Met
 	}
 
 	// Total number of evaluations
-	if err := prometheus.Register(prometheus.NewCounterFunc(
-		prometheus.CounterOpts{
-			Name: "island_total_evaluations",
-			Help: "Number of evaluations carried so far over the population on this island",
-		},
-		func() float64 {
-			return float64(pool.GetTotalEvaluations())
-		},
-	)); err != nil {
-		ms.log.Fatalf("Could not start island_total_evaluations collector, %s", err.Error())
-	}
+	ms.EvaluationsCount = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "island_total_evaluations",
+		Help: "Number of evaluations carried out so far over the population on this island",
+	})
+
+	// Best Fitness
+	ms.BestFitnessGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "best_fitness",
+		Help: "Fitness of the best solution found so far",
+	})
+
+	// MigrationsCount
+	ms.OutgoingMigrationsCount = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "island_total_migrations_outgoing",
+		Help: "Number of migrations carried out so far",
+	})
+
+	ms.IncomingMigrationsCount = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "island_total_migrations_incomming",
+		Help: "Number of migrations carried out so far",
+	})
+
+	// Broadcast count
+	ms.OutgoingBroadcasts = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "island_total_broadcasts_outgoing",
+		Help: "Number of broadcasts carried out so far",
+	})
+
+	ms.IncomingBroadcasts = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "island_total_broadcast_incomming",
+		Help: "Number of broadcasts carried out so far",
+	})
+
+	// Best neurons (Delegate to problem?)
 
 	// Population size
-	if err := prometheus.Register(prometheus.NewGaugeFunc(
+	ms.popSizeCollector = prometheus.NewGaugeFunc(
 		prometheus.GaugeOpts{
 			Name: "island_population_size",
 			Help: "Number of individuals in the population at a given moment",
@@ -46,27 +82,10 @@ func MakeMetricsServer(pool *PoolModel, addr string, logger *logrus.Logger) *Met
 		func() float64 {
 			return float64(pool.population.Length())
 		},
-	)); err != nil {
-		ms.log.Fatalf("Could not start island_population_size collector, %s", err.Error())
-	}
-
-	// Best Fitness
-	if err := prometheus.Register(prometheus.NewGaugeFunc(
-		prometheus.GaugeOpts{
-			Name: "best_fitness",
-			Help: "Fitness of the best solution found so far",
-		},
-		func() float64 {
-			return pool.BestSolution.Fitness
-		},
-	)); err != nil {
-		ms.log.Fatalf("Could not start best_fitness collector, %s", err.Error())
-	}
-
-	// Best neurons (Delegate to problem)
+	)
 
 	// Avg fitness
-	if err := prometheus.Register(prometheus.NewGaugeFunc(
+	ms.avgFitnessCollector = prometheus.NewGaugeFunc(
 		prometheus.GaugeOpts{
 			Name: "population_avg_fitness",
 			Help: "Average fitness of the population",
@@ -74,12 +93,10 @@ func MakeMetricsServer(pool *PoolModel, addr string, logger *logrus.Logger) *Met
 		func() float64 {
 			return pool.GetAverageFitness()
 		},
-	)); err != nil {
-		ms.log.Fatalf("Could not start population_avg_fitness collector, %s", err.Error())
-	}
+	)
 
 	// Std fitness
-	if err := prometheus.Register(prometheus.NewGaugeFunc(
+	ms.stdFitnessCollector = prometheus.NewGaugeFunc(
 		prometheus.GaugeOpts{
 			Name: "population_std_fitness",
 			Help: "Standard deviation of the fitness of the population",
@@ -101,12 +118,10 @@ func MakeMetricsServer(pool *PoolModel, addr string, logger *logrus.Logger) *Met
 
 			return std
 		},
-	)); err != nil {
-		ms.log.Fatalf("Could not start population_std_fitness collector, %s", err.Error())
-	}
+	)
 
 	// Cluster number of nodes
-	if err := prometheus.Register(prometheus.NewGaugeFunc(
+	ms.clusterSizeCollector = prometheus.NewGaugeFunc(
 		prometheus.GaugeOpts{
 			Name: "cluster_size",
 			Help: "Nodes that this node knows about",
@@ -114,9 +129,7 @@ func MakeMetricsServer(pool *PoolModel, addr string, logger *logrus.Logger) *Met
 		func() float64 {
 			return float64(pool.cluster.GetNumNodes())
 		},
-	)); err != nil {
-		ms.log.Fatalf("Could not start cluster_size collector, %s", err.Error())
-	}
+	)
 
 	return ms
 }
@@ -125,9 +138,70 @@ func MakeMetricsServer(pool *PoolModel, addr string, logger *logrus.Logger) *Met
 func (ms *MetricsServer) Start() {
 	ms.log.Infof("Metrics listening on: http://%s/metrics", ms.addr)
 
+	if err := prometheus.Register(ms.popSizeCollector); err != nil {
+		ms.log.Fatalf("Could not start island_population_size collector, %s", err.Error())
+	}
+
+	if err := prometheus.Register(ms.avgFitnessCollector); err != nil {
+		ms.log.Fatalf("Could not start population_avg_fitness collector, %s", err.Error())
+	}
+
+	if err := prometheus.Register(ms.stdFitnessCollector); err != nil {
+		ms.log.Fatalf("Could not start population_std_fitness collector, %s", err.Error())
+	}
+
+	if err := prometheus.Register(ms.clusterSizeCollector); err != nil {
+		ms.log.Fatalf("Could not start cluster_size collector, %s", err.Error())
+	}
+
 	http.Handle("/metrics", promhttp.Handler())
 	err := http.ListenAndServe(ms.addr, nil)
 	if err != nil {
 		ms.log.Fatalf("Could not start listener. %s", err.Error())
+	}
+}
+
+// Shutdown the metrics server unregistering metrics
+func (ms *MetricsServer) Shutdown() {
+	ms.log.Info("Shutting down metrics server")
+
+	if ms.EvaluationsCount != nil {
+		prometheus.Unregister(ms.EvaluationsCount)
+	}
+
+	if ms.OutgoingMigrationsCount != nil {
+		prometheus.Unregister(ms.OutgoingMigrationsCount)
+	}
+
+	if ms.IncomingMigrationsCount != nil {
+		prometheus.Unregister(ms.IncomingMigrationsCount)
+	}
+
+	if ms.OutgoingBroadcasts != nil {
+		prometheus.Unregister(ms.OutgoingBroadcasts)
+	}
+
+	if ms.IncomingBroadcasts != nil {
+		prometheus.Unregister(ms.IncomingBroadcasts)
+	}
+
+	if ms.BestFitnessGauge != nil {
+		prometheus.Unregister(ms.BestFitnessGauge)
+	}
+
+	if ms.popSizeCollector != nil {
+		prometheus.Unregister(ms.popSizeCollector)
+	}
+
+	if ms.avgFitnessCollector != nil {
+		prometheus.Unregister(ms.avgFitnessCollector)
+	}
+
+	if ms.stdFitnessCollector != nil {
+		prometheus.Unregister(ms.stdFitnessCollector)
+	}
+
+	if ms.clusterSizeCollector != nil {
+		prometheus.Unregister(ms.clusterSizeCollector)
 	}
 }

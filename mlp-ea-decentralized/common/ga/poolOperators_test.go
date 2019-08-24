@@ -13,7 +13,8 @@ func TestMakePool(t *testing.T) {
 
 	mlp.Config.FactoryCfg.MinHiddenNeurons = 2
 	mlp.Config.FactoryCfg.MaxHiddenNeurons = 4
-	pool := MakePool(size, 9999, 9998, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	pool := MakePool(size, 9999, 9998, 9997, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	defer pool.metricsServer.Shutdown()
 
 	if pool.GetTotalEvaluations() != 0 {
 		t.Errorf("Evaluated individuals on initialization")
@@ -39,8 +40,9 @@ func TestMakePool(t *testing.T) {
 func TestSelection(t *testing.T) {
 	mlp.Config.FactoryCfg.MinHiddenNeurons = 2
 	mlp.Config.FactoryCfg.MaxHiddenNeurons = 4
-	pool := MakePool(20, 9999, 9998, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	pool := MakePool(20, 9999, 9998, 9997, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
 	pool.SortFunc = mlp.SortByFitnessAndNeurons
+	defer pool.metricsServer.Shutdown()
 
 	for i, in := range pool.GetPopulationSnapshot() {
 		in.Fitness = float64(i)
@@ -78,7 +80,8 @@ func TestSelection(t *testing.T) {
 func TestCrossover(t *testing.T) {
 	mlp.Config.FactoryCfg.MinHiddenNeurons = 2
 	mlp.Config.FactoryCfg.MaxHiddenNeurons = 4
-	pool := MakePool(20, 9999, 9998, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	pool := MakePool(20, 9999, 9998, 9997, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	defer pool.metricsServer.Shutdown()
 	pool.SortFunc = mlp.SortByFitnessAndNeurons
 	pool.CrossRate = 1
 
@@ -96,7 +99,8 @@ func TestCrossover(t *testing.T) {
 func TestGetAverageFitness(t *testing.T) {
 	mlp.Config.FactoryCfg.MinHiddenNeurons = 2
 	mlp.Config.FactoryCfg.MaxHiddenNeurons = 4
-	pool := MakePool(20, 9999, 9998, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	pool := MakePool(20, 9999, 9998, 9997, []string{}, rand.New(rand.NewSource(7)), mlp.NewRandMLP)
+	defer pool.metricsServer.Shutdown()
 
 	sum := 0.0
 	for i, in := range pool.GetPopulationSnapshot() {

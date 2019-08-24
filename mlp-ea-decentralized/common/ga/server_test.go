@@ -83,7 +83,7 @@ func TestMigrateIndividuals(t *testing.T) {
 	rnd := rand.New(rand.NewSource(7))
 	mlp.Config.FactoryCfg.MinHiddenNeurons = 2
 	mlp.Config.FactoryCfg.MaxHiddenNeurons = 4
-	pool := MakePool(size, 9999, 9998, []string{}, rnd, mlp.NewRandMLP)
+	pool := MakePool(size, 9999, 9998, 9997, []string{}, rnd, mlp.NewRandMLP)
 	pool.Delegate = mlp.DelegateImpl{}
 	pool.SortFunc = mlp.SortByFitnessAndNeurons
 	pool.NMigrate = 4

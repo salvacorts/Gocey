@@ -269,6 +269,9 @@ func (pool *PoolModel) handleEvaluated() {
 				pool.BestSolution = o1.Clone(pool.Rnd)
 				pool.BestSolution.ID = o1.ID
 
+				pool.metricsServer.BestFitnessGauge.Set(
+					pool.BestSolution.Fitness)
+
 				// Spread the new best solution accross the cluster
 				indiv := Individual{
 					IndividualID: pool.BestSolution.ID,
@@ -278,6 +281,7 @@ func (pool *PoolModel) handleEvaluated() {
 						pool.BestSolution.Genome),
 				}
 				pool.cluster.BroadcastBestIndividual <- indiv
+				pool.metricsServer.OutgoingBroadcasts.Inc()
 
 				if pool.BestCallback != nil {
 					pool.BestCallback(pool)
@@ -287,6 +291,7 @@ func (pool *PoolModel) handleEvaluated() {
 			pool.population.Add(o1)
 			pool.popSemaphore.Release(1)
 			pool.evaluations++
+			pool.metricsServer.EvaluationsCount.Inc()
 
 			if pool.evaluations%100 == 0 {
 				fmt.Printf("Best Fitness: %f\n", pool.BestSolution.Fitness)
@@ -385,6 +390,8 @@ func (pool *PoolModel) handleBroadcastedIndividual() {
 				Log.Debugln("pool.BroadcastedIndividual was already closed")
 				return
 			}
+
+			pool.metricsServer.IncomingBroadcasts.Inc()
 
 			indiv := eaopt.Individual{
 				ID:        in.IndividualID,
@@ -544,7 +551,6 @@ func (pool *PoolModel) migrationScheduler() {
 				err := remoteMetadata.Unmarshal(remotePeer.Meta)
 				if err != nil {
 					Log.Errorf("Could not parse Node Metadata on migrationScheduler. %s", err.Error())
-
 				}
 
 				remoteAddr := fmt.Sprintf("%s:%d",
@@ -563,13 +569,13 @@ func (pool *PoolModel) migrationScheduler() {
 			}
 
 			client := NewDistributedEAClient(conn)
-			_, err := client.MigrateIndividuals(context.Background(), &IndividualsBatch{
+			if _, err := client.MigrateIndividuals(context.Background(), &IndividualsBatch{
 				Individuals: migrate,
-			})
-
-			if err != nil {
+			}); err != nil {
 				Log.Errorf("could not MigrateIndividuals to %s. %s", conn.Target(), err.Error())
 			}
+
+			pool.metricsServer.OutgoingMigrationsCount.Inc()
 
 			conn.Close()
 

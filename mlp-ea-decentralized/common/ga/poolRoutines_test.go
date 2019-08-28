@@ -200,7 +200,3 @@ func TestPopulationGrowControl(t *testing.T) {
 
 	close(pool.stop)
 }
-
-func TestMigrationScheduler(t *testing.T) {
-	// TODO: Implement with custom server
-}

@@ -2,11 +2,9 @@ package main
 
 import (
 	"flag"
-	"os"
 
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-decentralized/common/ga"
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-decentralized/common/mlp"
-	"google.golang.org/grpc/grpclog"
 
 	"github.com/sirupsen/logrus"
 )
@@ -27,7 +25,6 @@ func main() {
 
 	logrus.SetLevel(logrus.ErrorLevel)
 	client.Log.SetLevel(logrus.InfoLevel)
-	grpclog.SetLoggerV2(grpclog.NewLoggerV2(os.Stdout, os.Stdout, os.Stdout))
 
 	err := client.Start()
 	if err != nil {

@@ -34,10 +34,17 @@ func NewRandMLP(rng *rand.Rand) eaopt.Genome {
 func (nn *MultiLayerNetwork) Evaluate() (float64, error) {
 	copy := nn.Clone().(*MultiLayerNetwork)
 
-	_, mean := KFoldValidation(
+	scores, _ := KFoldValidation(
 		copy, Config.TrainingSet, Config.Epochs, Config.Folds, 1, Config.Classes)
 
-	return 100 - mean, nil
+	best := math.Inf(1)
+	for _, s := range scores {
+		if s < best {
+			best = s
+		}
+	}
+
+	return 100 - best, nil
 }
 
 // Mutate modifies the weights of certain neurons, at random, depending on the application rate.

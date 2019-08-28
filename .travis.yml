@@ -4,7 +4,8 @@ language: go
 
 go:
   - 1.12
-  
-before_script: cd mlp-ea-decentralized/common
+
+before_install: cd mlp-ea-decentralized/common
+
 script:
   - go test -v ./... -timeout 20m -count 1

@@ -1,0 +1,9 @@
+dist: bionic
+
+language: go
+
+go:
+  - 1.12
+
+script:
+  - go test -v ./... -timeout 20m -count 1

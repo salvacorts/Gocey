@@ -57,7 +57,7 @@ func MakeMetricsServer(pool *PoolModel, addr string, logger *logrus.Logger) *Met
 
 	ms.IncomingMigrationsCount = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "island_total_migrations_incomming",
-		Help: "Number of migrations carried out so far",
+		Help: "Number of migrations received so far",
 	})
 
 	// Broadcast count
@@ -68,7 +68,7 @@ func MakeMetricsServer(pool *PoolModel, addr string, logger *logrus.Logger) *Met
 
 	ms.IncomingBroadcasts = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "island_total_broadcast_incomming",
-		Help: "Number of broadcasts carried out so far",
+		Help: "Number of broadcast received so far",
 	})
 
 	// Best neurons (Delegate to problem?)

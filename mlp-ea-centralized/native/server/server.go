@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp-ea-centralized/common/ga"
-	"google.golang.org/grpc/grpclog"
 
 	"github.com/sirupsen/logrus"
 )
@@ -22,7 +21,6 @@ func main() {
 	logrus.SetLevel(logrus.ErrorLevel)
 	ga.Log.SetOutput(os.Stdout)
 	ga.Log.SetLevel(logrus.InfoLevel)
-	grpclog.SetLoggerV2(grpclog.NewLoggerV2(nil, nil, ga.Log.Out))
 
 	_, score, err := ga.TrainMLP(string(fileContent))
 	if err != nil {

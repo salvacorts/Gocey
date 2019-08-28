@@ -6,4 +6,5 @@ go:
   - 1.12
 
 script:
+  - cd mlp-ea-decentralized/common
   - go test -v ./... -timeout 20m -count 1

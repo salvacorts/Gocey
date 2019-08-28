@@ -13,7 +13,6 @@ import (
 	"github.com/salvacorts/TFG-Parasitic-Metaheuristics/mlp/common/utils"
 	"github.com/salvacorts/eaopt"
 	mv "github.com/salvacorts/go-perceptron-go/validation"
-	"google.golang.org/grpc/grpclog"
 
 	"github.com/sirupsen/logrus"
 )
@@ -99,7 +98,6 @@ func main() {
 	logrus.SetLevel(logrus.InfoLevel)
 	ga.Log.SetOutput(os.Stdout)
 	ga.Log.SetLevel(logrus.InfoLevel)
-	grpclog.SetLoggerV2(grpclog.NewLoggerV2(ga.Log.Out, ga.Log.Out, ga.Log.Out))
 
 	start := time.Now()
 

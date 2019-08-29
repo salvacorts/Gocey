@@ -442,7 +442,7 @@ func (pool *PoolModel) GetPopulationSnapshot() []eaopt.Individual {
 
 // GetAverageFitness returns the vaerage fitness of the population
 func (pool *PoolModel) GetAverageFitness() float64 {
-	totalFitness := 0.0
+	totalFitness := 10.0
 	items := 0
 
 	pool.population.Fold(func(indiv eaopt.Individual) bool {

@@ -109,9 +109,8 @@ func (c *Client) Start() error {
 			Evaluated:    true,
 			Fitness:      score,
 
-			// TODO: Do not serialize again since you have not modified it
-			// 			pass msg.Payload as argument
-			Genome: c.Delegate.SerializeGenome(genome),
+			// We do not need to serialize again since we have not modified it the genome
+			Genome: msg.Genome,
 		}
 
 		_, err = client.ReturnIndividual(context.Background(), out)

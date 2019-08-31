@@ -88,7 +88,7 @@ func (c *Cluster) Start(metadata NodeMetadata) {
 
 	queue := new(memberlist.TransmitLimitedQueue)
 	queue.NumNodes = c.GetNumNodes
-	queue.RetransmitMult = 4 // TODO: Optimize this
+	conf.UDPBufferSize = 65535
 	conf.Delegate = makeNodeDelegate(c.Logger, c.ReceiveBestIndividual, queue)
 
 	c.delegate = conf.Delegate.(*nodeDelegate)
@@ -113,7 +113,6 @@ func (c *Cluster) Start(metadata NodeMetadata) {
 		c.Logger.Warnf("Standalone node created. Should be a boostrap for another joining node")
 	}
 
-	//go c.updateMetadataHandler()
 	go c.PrintMembers()
 
 	for {

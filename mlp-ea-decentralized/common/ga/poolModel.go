@@ -45,8 +45,9 @@ type PoolModel struct {
 	BestCallback       func(*PoolModel)
 	GenerationCallback func(*PoolModel)
 
-	CrossRate float64
-	MutRate   float64
+	NCandidates int
+	CrossRate   float64
+	MutRate     float64
 
 	PopSize        int
 	MaxEvaluations int
@@ -85,6 +86,7 @@ func MakePool(
 	pool := &PoolModel{
 		Rnd:                   rnd,
 		PopSize:               popSize,
+		NCandidates:           4,
 		population:            MakePopulation(),
 		popSemaphore:          make(semaphore, popSize),
 		evaluations:           0,
@@ -150,10 +152,10 @@ func (pool *PoolModel) Minimize() {
 
 		// At least nOffsprings shold be available in the population
 		// tu run this operator
-		pool.popSemaphore.Acquire(4)
+		pool.popSemaphore.Acquire(pool.NCandidates)
 
 		// take here randomly from population
-		offsprings = pool.selection(4, 4)
+		offsprings = pool.selection(4, pool.NCandidates)
 		offsprings = pool.crossover(offsprings)
 		offsprings = pool.mutate(offsprings)
 

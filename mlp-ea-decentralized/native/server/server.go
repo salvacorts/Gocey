@@ -74,7 +74,7 @@ func main() {
 	pool.SortFunc = mlp.SortByFitnessAndNeurons
 	pool.CrossRate = 0.3
 	pool.MutRate = 0.3
-	pool.MaxEvaluations = 1000000
+	pool.MaxEvaluations = 2000
 	pool.ExtraOperators = []eaopt.ExtraOperator{
 		eaopt.ExtraOperator{Operator: mlp.AddNeuron, Probability: 0.3},
 		eaopt.ExtraOperator{Operator: mlp.RemoveNeuron, Probability: 0.15},

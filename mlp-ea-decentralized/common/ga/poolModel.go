@@ -61,7 +61,6 @@ type PoolModel struct {
 	evaluations       int
 	wg                sync.WaitGroup
 	stop              chan bool
-	shrinkChan        chan bool
 	evaluationChannel chan eaopt.Individual
 	evaluatedChannel  chan eaopt.Individual
 
@@ -115,14 +114,6 @@ func MakePool(
 
 // Minimize runs the algorithm by connecting the pipes
 func (pool *PoolModel) Minimize() {
-	// Wait for goroutins to end at the end of the function
-	defer pool.wg.Wait()
-	defer close(pool.shrinkChan)
-	defer close(pool.evaluationChannel)
-	defer close(pool.evaluatedChannel)
-	defer close(pool.BroadcastedIndividual)
-	defer close(pool.stop)
-
 	// Launch client requests handlers
 	go pool.handleEvaluate()
 	go pool.handleEvaluated()
@@ -130,7 +121,6 @@ func (pool *PoolModel) Minimize() {
 
 	// Launch cluster membership service
 	go pool.cluster.Start(pool.getCurrentNodeMetadata())
-	defer pool.cluster.Shutdown()
 
 	// Launch metrics server
 	go pool.metricsServer.Start()
@@ -147,7 +137,7 @@ func (pool *PoolModel) Minimize() {
 	go pool.migrationScheduler()
 	pool.popSemaphore.Release(pool.PopSize)
 
-	for pool.evaluations < pool.MaxEvaluations {
+	for pool.evaluations < pool.MaxEvaluations || pool.EarlyStop(pool) {
 		var offsprings []eaopt.Individual
 
 		// At least nOffsprings shold be available in the population
@@ -180,6 +170,10 @@ func (pool *PoolModel) Minimize() {
 			}
 		}
 	}
+
+	pool.cluster.Shutdown()
+	close(pool.stop)
+	//pool.wg.Wait()
 }
 
 // Selection selects nOffstrings on a tournamnet of nCandidates
@@ -255,6 +249,7 @@ func (pool *PoolModel) handleEvaluated() {
 	defer pool.wg.Done()
 
 	Log.Infoln("handleEvaluated goroutine started")
+	defer Log.Infoln("handleEvaluated goroutine stopped")
 
 	for {
 		select {
@@ -305,19 +300,6 @@ func (pool *PoolModel) handleEvaluated() {
 				fmt.Printf("\n\n")
 			}
 
-			if pool.evaluations >= pool.MaxEvaluations ||
-				(pool.EarlyStop != nil && pool.EarlyStop(pool)) {
-				select {
-				case <-pool.stop:
-					Log.Debugln("pool.stop was already closed")
-				default:
-					if pool.stop != nil {
-						pool.grpcServer.Stop()
-						close(pool.stop)
-					}
-				}
-			}
-
 		case <-pool.stop:
 			return
 		}
@@ -329,6 +311,7 @@ func (pool *PoolModel) handleEvaluate() {
 	defer pool.wg.Done()
 
 	Log.Infoln("handleEvaluate goroutine started")
+	defer Log.Infoln("handleEvaluate goroutine stopped")
 
 	var (
 		listenAddr = "0.0.0.0"
@@ -349,6 +332,7 @@ func (pool *PoolModel) handleEvaluate() {
 	pool.grpcServer = grpc.NewServer()
 	RegisterDistributedEAServer(pool.grpcServer, mlpServer)
 	defer pool.grpcServer.Stop()
+	defer close(pool.evaluatedChannel)
 
 	// Setup listener for native clients
 	lisNative, err := net.Listen("tcp", fmt.Sprintf("%s:%d", listenAddr, nativePort))
@@ -382,6 +366,7 @@ func (pool *PoolModel) handleBroadcastedIndividual() {
 	defer pool.wg.Done()
 
 	Log.Infoln("handleBroadcastedIndividual goroutine started")
+	defer Log.Infoln("handleBroadcastedIndividual goroutine stopped")
 
 	for {
 		select {
@@ -463,6 +448,7 @@ func (pool *PoolModel) populationGrowControl() {
 	defer pool.wg.Done()
 
 	Log.Infoln("populationGrowControl goroutine started")
+	defer Log.Infoln("populationGrowControl goroutine stopped")
 
 	for {
 		select {
@@ -506,6 +492,7 @@ func (pool *PoolModel) migrationScheduler() {
 	defer pool.wg.Done()
 
 	Log.Infoln("migrationScheduler goroutine started")
+	defer Log.Infoln("migrationScheduler goroutine stopped")
 
 	for {
 		select {

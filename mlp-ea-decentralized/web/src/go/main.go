@@ -18,7 +18,7 @@ func main() {
 	logger := WebLogger{}
 
 	client := ga.Client{
-		ServerAddr: "ws://127.0.0.1:3118",
+		ServerAddr: "ws://127.0.0.1:2019",
 		ID:         "clientWasm",
 		Log:        logrus.New(),
 		Delegate:   mlp.DelegateImpl{},

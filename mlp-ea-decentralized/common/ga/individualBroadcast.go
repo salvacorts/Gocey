@@ -1,3 +1,5 @@
+//+build !js
+
 package ga
 
 import "github.com/hashicorp/memberlist"

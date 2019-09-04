@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/rand"
 	"net"
+	"net/http"
 	"reflect"
 	"runtime"
 	"sync"
@@ -58,6 +59,8 @@ type PoolModel struct {
 	popSemaphore semaphore
 
 	// Clients communications
+	WebPort           int
+	WebPath           string
 	evaluations       int
 	wg                sync.WaitGroup
 	stop              chan bool
@@ -315,6 +318,7 @@ func (pool *PoolModel) handleEvaluate() {
 
 	var (
 		listenAddr = "0.0.0.0"
+		webPort    = pool.WebPort
 		nativePort = pool.grpcPort
 		wasmPort   = nativePort + 1
 	)
@@ -340,6 +344,10 @@ func (pool *PoolModel) handleEvaluate() {
 		Log.Fatalf("Failed to listen: %v", err)
 	}
 	defer lisNative.Close()
+
+	// Setup HTTP listener to serve webs
+	Log.Infof("Web Server for bowser collaborators at http://%s:%d/", listenAddr, wasmPort)
+	go http.ListenAndServe(fmt.Sprintf("%s:%d", listenAddr, webPort), http.FileServer(http.Dir(pool.WebPath)))
 
 	// Setup listener for wasm clients based on websockets
 	lisWasm, err := ws.Listen(fmt.Sprintf("ws://%s:%d", listenAddr, wasmPort), nil)

@@ -21,18 +21,20 @@ import (
 var (
 	// Opened ports
 	metricsPort     = flag.Int("metricsPort", 2222, "Port for prometheus metrics")
-	grpcPort        = flag.Int("grpcPort", 3117, "Port to listen for grpc requests")
+	grpcPort        = flag.Int("grpcPort", 2019, "Port to listen for grpc requests")
 	clusterPort     = flag.Int("clusterPort", 9999, "Listening port for gossip protocol")
-	clusterBoostrap = flag.String("clusterBoostrap", "", "comma separated list of peers already ina  cluster to join")
+	clusterBoostrap = flag.String("clusterBootstrap", "", "comma separated list of peers already in a cluster to join")
+	dataset         = flag.String("datasetPath", "../../../datasets/glass.csv", "Dataset to train MLP with")
+	webPath         = flag.String("webPath", "../../web/src/", "Webpage source code that will be served to browser-based collaborators")
+	webPort         = flag.Int("webPort", 8080, "Port to serve webpage to broser based collaborators")
 )
 
 func main() {
 	flag.Parse()
 
-	filename := "../../../datasets/glass.csv"
-	fileContent, err := ioutil.ReadFile(filename)
+	fileContent, err := ioutil.ReadFile(*dataset)
 	if err != nil {
-		logrus.Fatalf("Cannot open %s. Error: %s", filename, err.Error())
+		logrus.Fatalf("Cannot open %s. Error: %s", *dataset, err.Error())
 	}
 
 	// Patterns initialization
@@ -67,6 +69,8 @@ func main() {
 		mlp.NewRandMLP)
 
 	// Configure  extra pool settings
+	pool.WebPort = *webPort
+	pool.WebPath = *webPath
 	pool.Delegate = mlp.DelegateImpl{}
 	pool.KeepBest = false
 	pool.NMigrate = pool.PopSize / 10

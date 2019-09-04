@@ -347,7 +347,11 @@ func (pool *PoolModel) handleEvaluate() {
 
 	// Setup HTTP listener to serve webs
 	Log.Infof("Web Server for bowser collaborators at http://%s:%d/", listenAddr, wasmPort)
-	go http.ListenAndServe(fmt.Sprintf("%s:%d", listenAddr, webPort), http.FileServer(http.Dir(pool.WebPath)))
+	http.Handle("/", http.FileServer(http.Dir(pool.WebPath)))
+	http.HandleFunc("/grpcPortWS", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "%d", wasmPort)
+	})
+	go http.ListenAndServe(fmt.Sprintf("%s:%d", listenAddr, webPort), nil)
 
 	// Setup listener for wasm clients based on websockets
 	lisWasm, err := ws.Listen(fmt.Sprintf("ws://%s:%d", listenAddr, wasmPort), nil)

@@ -1,5 +1,9 @@
 importScripts("wasm_exec.js")
 
+function GetHostName() {
+    return self.location.hostname
+}
+
 if (!WebAssembly.instantiateStreaming) { // polyfill
     WebAssembly.instantiateStreaming = async (resp, importObject) => {
         const source = await (await resp).arrayBuffer();

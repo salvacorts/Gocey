@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/salvacorts/TFG-Parasitic-Metaheuristics.svg?branch=master)](https://travis-ci.org/salvacorts/TFG-Parasitic-Metaheuristics)
 
-# Bacherlor Thesis: *Gocey. Distributed Evolutionary Algorithms on Ephemeral Infrastructure*
+# Bachelor Thesis: *Gocey. Distributed Evolutionary Algorithms on Ephemeral Infrastructure*
 
 ### **Author:** Salvador Corts Sánchez
 ### **Supervisor:** Juan Julián Merelo Guervós
